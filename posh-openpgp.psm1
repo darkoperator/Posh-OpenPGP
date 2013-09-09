@@ -104,6 +104,7 @@ function Get-PGPSecretKey
     }
 }
 
+
 <#
 .Synopsis
    Get a specified or all publick keys from a OpenPGP key ring file.
@@ -313,6 +314,7 @@ function New-PGPRSAKeyPair
     {
         
         $Generator = [Org.BouncyCastle.Security.GeneratorUtilities]::GetKeyPairGenerator("RSA")
+        # Public exponent of 65537
         $BI = New-Object Org.BouncyCastle.Math.BigInteger -ArgumentList "10001",16
         $SecureRand =  New-Object Org.BouncyCastle.Security.SecureRandom
         $RSAOps = New-Object Org.BouncyCastle.Crypto.Parameters.RsaKeyGenerationParameters -ArgumentList $BI,$SecureRand,$KeySize,25
@@ -348,7 +350,7 @@ function New-PGPRSAKeyPair
             $null,
             $SecureRand
             
-        $keyID = ('{0:x}' -f $seckey.KeyId)
+        $keyID = (($seckey.KeyId | foreach { $_.ToString("X2") }) -join "")
         if ($Armor)
         {
             $SecretKey = "$($keypath)\$($keyID)_sec.asc"
@@ -405,3 +407,343 @@ function New-PGPRSAKeyPair
 }
 
 
+<#
+.Synopsis
+   Generates a OpenPGP DSA/El Gamal key pair.
+.DESCRIPTION
+   Generates a new DSA/El Gamal OpenPGP Key pair. The keys default Size is of 2048 bits for El Gamal and 1024bits for DSA
+   (Do to current limitations of the library used only 1024bit keys for DSA can be made)encrypted with AES-256.
+   The key has a Symetric Algorithm preference of  AES 256, AES 192, AES 128, TowFish, CAST5 and 3DES.
+   The key has al Asymetric Algorithum preference of SHA 256, SHA 384, SHA 512 and RipeMD160. It supports
+   compression for ZLib, Zip and BZip2.
+.EXAMPLE
+   New-PGPDsaElGamalKeyPair -Path c:\ -Identity "Carlos Perez" -Email "gamal@tes.com" -PassPhrase (Read-Host -AsSecureString) -Verbose
+VERBOSE: Generating 1024bit DSA Key.
+VERBOSE: Generating 2048 El Gamal key
+VERBOSE: Creating PGP key ring
+VERBOSE: Generating secret key.
+VERBOSE: Generating public key.
+VERBOSE: Keyring has benn ceated.
+VERBOSE: Saving secret key to C:\\BA7860780D86003A_sec.pgp
+VERBOSE: Saving public key to C:\\BA7860780D86003A_pub.pgp
+
+.NOTES
+   General notes
+#>
+function New-PGPDsaElGamalKeyPair
+{
+    [CmdletBinding()]
+    [OutputType([int])]
+    Param
+    (
+        [Parameter(Mandatory=$true,
+        ValueFromPipelineByPropertyName=$true,
+        Position=0,
+        HelpMessage = "Path to where to save the key pair.")]
+        [string]$Path,
+
+        [Parameter(Mandatory=$true,
+        ValueFromPipelineByPropertyName=$true,
+        Position=1,
+        HelpMessage = "Identity of user of the key. (Example name of the user)")]
+        [string]$Identity,
+
+        [Parameter(Mandatory=$true,
+        ValueFromPipelineByPropertyName=$true,
+        Position=2,
+        HelpMessage = "Email address to associate key to.")]
+        [string]$Email,
+
+        [Parameter(Mandatory=$true,
+        ValueFromPipelineByPropertyName=$true,
+        Position=3,
+        HelpMessage = "Secure String representing the passphase for the key.")]
+        [securestring]$PassPhrase,
+
+        [Parameter(Mandatory=$false,
+        ValueFromPipelineByPropertyName=$true)]
+        [bool]$Armor = $false,
+
+        [Parameter(Mandatory=$false,
+        ValueFromPipelineByPropertyName=$true)]
+        [ValidateSet("IDEA",
+            "3DES",
+            "CAST5",
+            "BlowFish",
+            "TowFish",
+            "DES",
+            "AES128",
+            "AES196",
+            "AES256")]
+        [string]$SymetricAlgorithm = "AES256",
+
+        [Parameter(Mandatory=$false,
+        ValueFromPipelineByPropertyName=$true)]
+        [ValidateSet(1024, 2048, 3072, 4096)]
+        [int]$ElGamalKeySize = 2048,
+
+        [Parameter(Mandatory=$false,
+        ValueFromPipelineByPropertyName=$true)]
+        [datetime]$ExpirationDate
+    )
+
+    Begin
+    {
+        switch ($SymetricAlgorithm)
+        {
+            '3DES'     {$SymAlgo = [Org.BouncyCastle.Bcpg.SymmetricKeyAlgorithmTag]::TripleDes}
+            'CAST5'    {$SymAlgo = [Org.BouncyCastle.Bcpg.SymmetricKeyAlgorithmTag]::Cast5}
+            'BlowFish' {$SymAlgo = [Org.BouncyCastle.Bcpg.SymmetricKeyAlgorithmTag]::Blowfish}
+            'TowFish'  {$SymAlgo = [Org.BouncyCastle.Bcpg.SymmetricKeyAlgorithmTag]::Twofish}
+            'DES'      {$SymAlgo = [Org.BouncyCastle.Bcpg.SymmetricKeyAlgorithmTag]::Des}
+            'AES128'   {$SymAlgo = [Org.BouncyCastle.Bcpg.SymmetricKeyAlgorithmTag]::Aes128}
+            'AES192'   {$SymAlgo = [Org.BouncyCastle.Bcpg.SymmetricKeyAlgorithmTag]::Aes192}
+            'AES256'   {$SymAlgo = [Org.BouncyCastle.Bcpg.SymmetricKeyAlgorithmTag]::Aes256}
+            Default    {$SymAlgo = [Org.BouncyCastle.Bcpg.SymmetricKeyAlgorithmTag]::Aes256}
+        }
+
+        if (Test-Path $Path)
+        {
+            $keypath = (Resolve-Path $Path).Path
+        }
+        else
+        {
+            throw "The path specified does not exist!"
+        }
+    }
+    Process
+    {
+        
+        # Gnerate DSA Key
+        ########################
+        $SecureRand =  New-Object Org.BouncyCastle.Security.SecureRandom
+        $DSAGenerator = [Org.BouncyCastle.Security.GeneratorUtilities]::GetKeyPairGenerator("DSA")
+        $pgen = New-Object Org.BouncyCastle.Crypto.Generators.DsaParametersGenerator
+        $pgen.Init(1024,80,$SecureRand)
+        $DSAParameters = $pgen.GenerateParameters()
+        $DSAOps = New-Object Org.BouncyCastle.Crypto.Parameters.DsaKeyGenerationParameters -ArgumentList $SecureRand,$DSAParameters
+        $DSAGenerator.Init($DSAOps)
+        # The library limits DSA creation to 1024
+        Write-Verbose "Generating 1024bit DSA Key."
+        $DSAKeyPair = $DSAGenerator.GenerateKeyPair()
+
+        # Generate El Gamal key
+        #########################
+        $SecureRandEG =  New-Object Org.BouncyCastle.Security.SecureRandom
+        $ElGamalGenerator = [Org.BouncyCastle.Security.GeneratorUtilities]::GetKeyPairGenerator("ELGAMAL")
+        $EGPrime = Get-MODP -BitSize $ElGamalKeySize
+        $EGBaseGenerator = New-Object Org.BouncyCastle.Math.BigInteger -ArgumentList "2",16
+        $ElGamalParameterSet = New-Object Org.BouncyCastle.Crypto.Parameters.ElGamalParameters -ArgumentList $EGPrime,$EGBaseGenerator
+        $ELGKP = New-Object Org.BouncyCastle.Crypto.Parameters.ElGamalKeyGenerationParameters -ArgumentList $SecureRandEG, $ElGamalParameterSet
+        $ElGamalGenerator.Init($ELGKP)
+        Write-Verbose "Generating $($ElGamalKeySize) El Gamal key"
+        $ElGamalKeyPair = $ElGamalGenerator.GenerateKeyPair()
+
+
+        # Create parameters for Hashed packets
+        $HashPacket = new-object Org.BouncyCastle.Bcpg.OpenPgp.PGPSignatureSubpacketGenerator
+        # Prefered Symetric Algorithms in order AES 256, AES 192, AES 128, TowFish, CAST5, 3DES
+        $HashPacket.setPreferredSymmetricAlgorithms($false, @(  9, 8, 7, 10, 3, 2 ));
+        # Prefered Hash Algotithms in order SHA 256, SHA 384, SHA 512, RipeMD160
+        $HashPacket.setPreferredHashAlgorithms($false, @(  8, 9, 10, 3 ));
+        # Compression algorithums in order ZLib, Zip, BZip2
+        $HashPacket.setPreferredCompressionAlgorithms($false, @( 2, 1, 3 ));
+        if ($ExpirationDate)
+        {
+            $expirationepoch = ($ExpirationDate.ToUniversalTime() - [datetime]::UtcNow).TotalSeconds
+            $HashPacket.SetKeyExpirationTime($false, $expirationepoch)
+        }
+        
+        Write-Verbose "Creating PGP key ring"
+        $PGPDSAPair = New-Object Org.BouncyCastle.Bcpg.OpenPgp.PgpKeyPair -ArgumentList ([Org.BouncyCastle.Bcpg.PublicKeyAlgorithmTag]::Dsa),
+                        $DSAKeyPair,
+                        ([datetime]::UtcNow)
+
+        $PGPEGPair = New-Object Org.BouncyCastle.Bcpg.OpenPgp.PgpKeyPair -ArgumentList ([Org.BouncyCastle.Bcpg.PublicKeyAlgorithmTag]::ElGamalEncrypt),
+                        $ElGamalKeyPair,
+                        ([datetime]::UtcNow)
+        
+        # Generate a key pair with default certification for use for encryption, decryption, signing and authentication
+        $SignatureType = [Org.BouncyCastle.Bcpg.OpenPgp.PgpSignature]::DefaultCertification
+        $KeyringGen = New-Object Org.BouncyCastle.Bcpg.OpenPgp.PgpKeyRingGenerator -ArgumentList $SignatureType, 
+                   $PGPDSAPair,
+                   "$($Identity) <$($email)>",
+                   $SymAlgo,
+                   ([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($PassPhrase))),
+                   $true,
+                   $null,
+                   $null,
+                   $SecureRand
+
+        $KeyringGen.AddSubKey($PGPEGPair)
+        Write-Verbose "Generating secret key."
+        $seckey = $keyRingGen.GenerateSecretKeyRing()
+        Write-Verbose "Generating public key."
+        $pubkey = $keyRingGen.GeneratePublicKeyRing()
+        Write-Verbose "Keyring has benn ceated."
+        $keyID = (($seckey.GetSecretKey().keyID | foreach { $_.ToString("X2") }) -join "")
+        if ($Armor)
+        {
+            $SecretKey = "$($keypath)\$($keyID)_sec.asc"
+            $PublicKey = "$($keypath)\$($keyID)_pub.asc"
+        }
+        else
+        {
+            $SecretKey = "$($keypath)\$($keyID)_sec.pgp"
+            $PublicKey = "$($keypath)\$($keyID)_pub.pgp"
+        }
+        # Create IO Stream for files that will represent the keys
+        $SecretStream = [System.IO.File]::Create($SecretKey)
+        $PublicStream = [System.IO.File]::Create($PublicKey)
+
+        # If ASCII Armor output is selected creted the proper object for the encoding
+        if ($Armor)
+        {
+             $SecretStream_armor = new-object Org.BouncyCastle.Bcpg.ArmoredOutputStream $SecretStream
+             $PublicStream_armor = new-object Org.BouncyCastle.Bcpg.ArmoredOutputStream $PublicStream
+        }
+
+        # Create the key pairs either in binarry or ASCII Armor
+        Write-Verbose "Saving secret key to $($SecretKey)"
+        Write-Verbose "Saving public key to $($PublicKey)"
+        if ($Armor)
+        {
+            $SecKey.Encode($SecretStream_armor)
+            sleep(2)
+            $SecretStream_armor.close()
+            $SecretStream.Close()
+
+            $pubkey.encode($PublicStream_armor)
+            sleep(2)
+            $PublicStream_armor.close()
+            $PublicStream.Close()
+        }
+        else
+        {
+            $SecKey.Encode($SecretStream)
+            sleep(2)
+            $SecretStream.Close()
+
+            $pubkey.encode($PublicStream)
+            sleep(2)
+            $PublicStream.Close()
+        }
+
+    }
+    End
+    {
+    }
+}
+
+<#
+.Synopsis
+   Get More Modular Exponential (MODP) Diffie-Hellman groups for Internet Key Exchange (IKE)
+.DESCRIPTION
+   Get More Modular Exponential (MODP) Diffie-Hellman groups for Internet Key Exchange (IKE). 
+   Based on http://www.ietf.org/rfc/rfc3526.txt
+.EXAMPLE
+   Example of how to use this cmdlet
+.EXAMPLE
+   Another example of how to use this cmdlet
+#>
+function Get-MODP
+{
+    [CmdletBinding()]
+    [OutputType([Org.BouncyCastle.Math.BigInteger])]
+    Param
+    (
+        # Param1 help description
+        [Parameter(Mandatory=$true,
+                   ValueFromPipelineByPropertyName=$true,
+                Position=0)]
+        [ValidateSet(1536,2048,3072,4096)]   
+        $BitSize
+    )
+
+    Begin
+    {
+        #$sb = [System.Text.StringBuilder]""
+    }
+    Process
+    {
+        switch ($BitSize)
+        {
+         
+            4096 {
+                $sbs = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1"+
+                "29024E088A67CC74020BBEA63B139B22514A08798E3404DD"+
+                "EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245"+
+                "E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED"+
+                "EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D"+
+                "C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F"+
+                "83655D23DCA3AD961C62F356208552BB9ED529077096966D"+
+                "670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B"+
+                "E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9"+
+                "DE2BCBF6955817183995497CEA956AE515D2261898FA0510"+
+                "15728E5A8AAAC42DAD33170D04507A33A85521ABDF1CBA64"+
+                "ECFB850458DBEF0A8AEA71575D060C7DB3970F85A6E1E4C7"+
+                "ABF5AE8CDB0933D71E8C94E04A25619DCEE3D2261AD2EE6B"+
+                "F12FFA06D98A0864D87602733EC86A64521F2B18177B200C"+
+                "BBE117577A615D6C770988C0BAD946E208E24FA074E5AB31"+
+                "43DB5BFCE0FD108E4B82D120A92108011A723C12A787E6D7"+
+                "88719A10BDBA5B2699C327186AF4E23C1A946834B6150BDA"+
+                "2583E9CA2AD44CE8DBBBC2DB04DE8EF92E8EFC141FBECAA6"+
+                "287C59474E6BC05D99B2964FA090C3A2233BA186515BE7ED"+
+                "1F612970CEE2D7AFB81BDD762170481CD0069127D5B05AA9"+
+                "93B4EA988D8FDDC186FFB7DC90A6C08F4DF435C934063199"+
+                "FFFFFFFFFFFFFFFF"
+                return New-Object Org.BouncyCastle.Math.BigInteger -ArgumentList $sbs,16
+            }
+
+            3072 {
+                $sbs = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1"+
+                "29024E088A67CC74020BBEA63B139B22514A08798E3404DD"+
+                "EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245"+
+                "E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED"+
+                "EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D"+
+                "C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F"+
+                "83655D23DCA3AD961C62F356208552BB9ED529077096966D"+
+                "670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B"+
+                "E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9"+
+                "DE2BCBF6955817183995497CEA956AE515D2261898FA0510"+
+                "15728E5A8AAAC42DAD33170D04507A33A85521ABDF1CBA64"+
+                "ECFB850458DBEF0A8AEA71575D060C7DB3970F85A6E1E4C7"+
+                "ABF5AE8CDB0933D71E8C94E04A25619DCEE3D2261AD2EE6B"+
+                "F12FFA06D98A0864D87602733EC86A64521F2B18177B200C"+
+                "BBE117577A615D6C770988C0BAD946E208E24FA074E5AB31"+
+                "43DB5BFCE0FD108E4B82D120A93AD2CAFFFFFFFFFFFFFFFF"
+                return New-Object Org.BouncyCastle.Math.BigInteger -ArgumentList $sbs,16
+            }
+
+            2048 {
+                $sbs = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
+                "29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
+                "EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245"+
+                "E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED"+
+                "EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D"+
+                "C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F"+
+                "83655D23DCA3AD961C62F356208552BB9ED529077096966D"+
+                "670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B"+
+                "E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9"+
+                "DE2BCBF6955817183995497CEA956AE515D2261898FA0510"+
+                "15728E5A8AACAA68FFFFFFFFFFFFFFFF"
+                 New-Object Org.BouncyCastle.Math.BigInteger -ArgumentList $sbs,16
+            }
+
+            1536 {
+                $sbs = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1"+
+                "29024E088A67CC74020BBEA63B139B22514A08798E3404DD"+
+                "EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245"+
+                "E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED"+
+                "EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D"+
+                "C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F"+
+                "83655D23DCA3AD961C62F356208552BB9ED529077096966D"+
+                "670C354E4ABC9804F1746C08CA237327FFFFFFFFFFFFFFFF"
+                return New-Object Org.BouncyCastle.Math.BigInteger -ArgumentList $sbs,16
+            }
+        }
+    }
+    End
+    {
+    }
+}
