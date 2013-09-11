@@ -1,42 +1,22 @@
-﻿
+﻿[Reflection.Assembly]::LoadFile("C:\Users\Carlos\Downloads\bccrypto-net-1.7-bin-ext\BouncyCastle.CryptoExt.dll")
+
+
 <#
 .Synopsis
    Get a specified or all private keys from a OpenPGP key ring file.
 .DESCRIPTION
    Get a specified or all private keys from a OpenPGP key ring file.
 .EXAMPLE
-   Get-PGPSecretKey -KeyRing $env:APPDATA\gnupg\secring.gpg -Id 9F3761B0306E1ADB
+   Get-PGPSecretKey -KeyRing C:\95b4851b599cb231_sec.pgp -Id 95B4851B599CB231
    
 
-Id                     : 9F3761B0306E1ADB
-IsSigningKey           : True
-IsMasterKey            : True
-KeyEncryptionAlgorithm : Aes256
-KeyId                  : -6973998088605263141
-PublicKey              : Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKey
-UserIds                : {Charlie Miller <cmiller@nsa.gov>}
-UserAttributes         : {}
-
-.EXAMPLE
-    Get-PGPSecretKey -KeyRing $env:APPDATA\gnupg\secring.gpg
-
-
-Id                     : FCA8A62932CC7353
+Id                     : 95B4851B599CB231
 IsSigningKey           : True
 IsMasterKey            : True
 KeyEncryptionAlgorithm : Cast5
-KeyId                  : -240759884188191917
+KeyId                  : -7659350713736318415
 PublicKey              : Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKey
-UserIds                : {Charlie Brown <Snoopy@colvert.com>}
-UserAttributes         : {}
-
-Id                     : 9F3761B0306E1ADB
-IsSigningKey           : True
-IsMasterKey            : True
-KeyEncryptionAlgorithm : Aes256
-KeyId                  : -6973998088605263141
-PublicKey              : Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKey
-UserIds                : {Charlie Miller <cmiller@nsa.gov>}
+UserIds                : {Carlos Perez <carlos@infosectactico.com>}
 UserAttributes         : {}
 #>
 function Get-PGPSecretKey
@@ -59,6 +39,39 @@ function Get-PGPSecretKey
 
     Begin
     {
+        $compressionalgos = @{
+            1 = "Zip"
+            2 = "ZLib"
+            3 = "Bzip2"
+        }
+
+        $symetricalgos = @{
+
+            10 = "Towfish"  
+            9 = "AES256"
+            8 = "AES192"
+            7 = "AES128"
+            6 = "DES"
+            5 = "SAFER"
+            4 = "Blowfish"
+            3 = "CAST5"
+            2 = "3DES"
+            1 = "IDEA"
+        }
+
+        $hashalgos = @{
+            1 = "MD5"
+            2 = "SHA1"
+            3 = "RipeMD160"
+            4 = "DoubleSha"
+            5 = "MD2"
+            6 = "Tiger192"
+            7 = "Haval5pass160"
+            8 = "Sha256"
+            9 = "Sha384"
+            10 = "Sha512"
+            11 = "Sha224"
+        }
     }
     Process
     {
@@ -76,11 +89,39 @@ function Get-PGPSecretKey
             {
                 $idlongformat = ($Id | foreach {[Convert]::ToInt64($_,16)})  -join ""
                 $kp = $PrivKeyBundle.GetSecretKey($idlongformat)
+                $sig = $kp.PublicKey.GetSignatures()                                                                                                                                                                                                      
+                $sigenum = $sig.GetEnumerator()                                                                                                      
+                [void]$sigenum.MoveNext()
+                $PreferedHashAlgos        = @()
+                $PreferedSymAlgos         = @()
+                $PreferedCompressionAlgos = @()
+                if ($sig1.Current.HasSubpackets)
+                {                                                                                                                                                                                                                                                                                                  
+                    $hashsub = $sigenum.Current.GetHashedSubPackets()                                                                                                                                                                                          
+                    $compalgos = $hashsub.GetPreferredCompressionAlgorithms()
+                    foreach ($calgo in $compalgos)
+                    {
+                        $PreferedCompressionAlgos += $compressionalgos[$calgo]
+                    }                                                                            
+                    $symalgost = $hashsub.GetPreferredSymmetricAlgorithms()
+                    foreach ($salgo in $symalgost)
+                    {
+                        $PreferedSymAlgos += $symetricalgos[$salgo]
+                    }
+                    $hashgost = $hashsub.GetPreferredHashAlgorithms()
+                    foreach ($halgo in $hashgost)
+                    {
+                        $PreferedHashAlgos += $hashalgos[$halgo]
+                    }
+                }
                 if ($kp)
                 {
                     # Add some additional properties to the object
                     Add-Member -InputObject $kp -MemberType NoteProperty -Name "Id" -Value (($kp.KeyId  |  foreach { $_.ToString("X2") }) -join "")
-                    #Add-Member -InputObject $kp -MemberType NoteProperty -Name "UserIds" -Value ($kp.UserIds())
+                    #Add-Member -InputObject $kp -MemberType NoteProperty -Name "UserIds" -Value ($kp.PublicKey.GetUserIds())
+                    Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedSymetric" -Value $PreferedSymAlgos
+                    Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedHash" -Value $PreferedHashAlgos
+                    Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedCompression" -Value $PreferedCompressionAlgos
                     $kp
                 }
             }
@@ -95,9 +136,41 @@ function Get-PGPSecretKey
                     {
                         if ($kp.IsSigningKey)
                         {
+                            $sig = $kp.PublicKey.GetSignatures()                                                                                                                                                                                                      
+                            $sigenum = $sig.GetEnumerator()                                                                                                      
+                            [void]$sigenum.MoveNext()
+                            $PreferedHashAlgos        = @()
+                            $PreferedSymAlgos         = @()
+                            $PreferedCompressionAlgos = @()
+                            if ($sig1.Current.HasSubpackets)
+                            {                                                                                                                                                                                                                                                                                                  
+                                $hashsub = $sigenum.Current.GetHashedSubPackets()                                                                                                                                                                                          
+                                $compalgos = $hashsub.GetPreferredCompressionAlgorithms()
+                                foreach ($calgo in $compalgos)
+                                {
+                                    $PreferedCompressionAlgos += $compressionalgos[$calgo]
+                                }                                                                            
+                                $symalgost = $hashsub.GetPreferredSymmetricAlgorithms()
+                                foreach ($salgo in $symalgost)
+                                {
+                                    $PreferedSymAlgos += $symetricalgos[$salgo]
+                                }
+                                $hashgost = $hashsub.GetPreferredHashAlgorithms()
+                                foreach ($halgo in $hashgost)
+                                {
+                                    $PreferedHashAlgos += $hashalgos[$halgo]
+                                }
+                            }
                             # Add some additional properties to the object
                             Add-Member -InputObject $kp -MemberType NoteProperty -Name "Id" -Value (($kp.KeyId  |  foreach { $_.ToString("X2") }) -join "")
-                            #Add-Member -InputObject $kp -MemberType NoteProperty -Name "UserIds" -Value ($kp.UserIds())
+                            #Add-Member -InputObject $kp -MemberType NoteProperty -Name "UserIds" -Value ($kp.PublicKey.GetUserIds())
+                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedSymetric" -Value $PreferedSymAlgos
+                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedHash" -Value $PreferedHashAlgos
+                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedCompression" -Value $PreferedCompressionAlgos
+                            $kp
+                        }
+                        else
+                        {
                             $kp
                         }
                     }
@@ -346,11 +419,11 @@ function New-PGPRSAKeyPair
         #hashparam
         $HashPacket = new-object Org.BouncyCastle.Bcpg.OpenPgp.PGPSignatureSubpacketGenerator
         # Prefered Symetric Algorithms in order AES 256, AES 192, AES 128, TowFish, CAST5, 3DES
-        $HashPacket.setPreferredSymmetricAlgorithms($false, @(  9, 8, 7, 10, 3, 2 ));
+        $HashPacket.setPreferredSymmetricAlgorithms($true, @(  9, 8, 7, 10, 3, 2 ));
         # Prefered Hash Algotithms in order SHA 256, SHA 384, SHA 512, RipeMD160
-        $HashPacket.setPreferredHashAlgorithms($false, @(  8, 9, 10, 3 ));
+        $HashPacket.setPreferredHashAlgorithms($true, @(  8, 9, 10, 3 ));
         # Compression algorithums in order ZLib, Zip, BZip2
-        $HashPacket.setPreferredCompressionAlgorithms($false, @( 2, 1, 3 ));
+        $HashPacket.setPreferredCompressionAlgorithms($true, @( 2, 1, 3 ));
         if ($ExpirationDate)
         {
             $expirationepoch = ($ExpirationDate.ToUniversalTime() - [datetime]::UtcNow).TotalSeconds
@@ -593,7 +666,7 @@ function New-PGPDsaElGamalKeyPair
                    $SymAlgo,
                    ([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($PassPhrase))),
                    $true,
-                   $null,
+                   $HashPacket.Generate(),
                    $null,
                    $SecureRand
 
@@ -771,112 +844,4 @@ function Get-MODP
     }
 }
 
-<#
-.Synopsis
-   Short description
-.DESCRIPTION
-   Long description
-.EXAMPLE
-   Update-PGPSecKeyPassPhrase $env:APPDATA\gnupg\secring.gpg -ID FCA8A62932CC7353 -OldPassphrase (Read-Host -AsSecureString) -NewPassphrase (Read-Host -AsSecureString) -Verbose
-VERBOSE: GEtting key FCA8A62932CC7353 from the secret key ring.
-VERBOSE: Key was found
-VERBOSE: Getting key encryption
-VERBOSE: Creating a copy of the key with the new passphrase and encrypting it.
-VERBOSE: Updating key ring
-VERBOSE: Saving the secret key ring with the updated key.
-#>
-function Update-PGPSecKeyPassPhrase
-{
-    [CmdletBinding()]
-    [OutputType([int])]
-    Param
-    (
 
-        [Parameter(Mandatory=$true,
-        ValueFromPipelineByPropertyName=$true,
-        Position=0)]
-        [ValidateScript({Test-Path $_})]
-        [string]$SecKeyRing,
-
-        [Parameter(Mandatory=$true,
-        ValueFromPipelineByPropertyName=$true,
-        Position=1)]
-        [string]$ID,
-
-        [Parameter(Mandatory=$true,
-        ValueFromPipelineByPropertyName=$true,
-        Position=2)]
-        [securestring]$OldPassphrase,
-
-        [Parameter(Mandatory=$true,
-        ValueFromPipelineByPropertyName=$true,
-        Position=3)]
-        [securestring]$NewPassphrase
-    )
-
-    Begin
-    {
-        $idlongformat = ($Id | foreach {[Convert]::ToInt64($_,16)})  -join ""
-    }
-    Process
-    {
-        [system.io.stream]$stream = [system.io.File]::OpenRead($SecKeyRing)
-
-        # Decode key ring
-        $instream = [Org.BouncyCastle.Bcpg.OpenPgp.PgpUtilities]::GetDecoderStream($stream)
-        $PrivKeyBundle = New-Object -TypeName Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKeyRingBundle -ArgumentList $instream
-        $SecureRand =  New-Object Org.BouncyCastle.Security.SecureRandom
-        Write-Verbose "GEtting key $($Id) from the secret key ring."
-        $secring = $PrivKeyBundle.GetSecretKeyRing($idlongformat)
-        if ($secring)
-        {
-            Write-Verbose "Key was found"
-            $seckey = $secring.GetSecretKey()
-            Write-Verbose "Getting key encryption"
-            $keyencalgo = $seckey.KeyEncryptionAlgorithm
-            Write-Verbose "Creating a copy of the key with the new passphrase and encrypting it."
-            # Create a copy with the new Passphrase
-
-            try
-            {
-            $copy = [Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKeyRing]::CopyWithNewPassword($secring, 
-                        ([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($OldPassphrase))),
-                        ([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($NewPassphrase))), 
-                        $keyencalgo, 
-                        $SecureRand)
-            }
-            catch
-            {
-                $error_message =  $_.Exception
-                if ($error_message -like "*Checksum mismatch*")
-                {
-                    Write-Error "Passphrase provided is not the correct one."
-                    return
-                }
-                else
-                {
-                    Write-Error $error_message
-                    return
-                }
-            }
-            Write-Verbose "Updating key ring"
-            # Remove the old key from the key bundle
-            $PrivKeyBundle = [Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKeyRingBundle]::RemoveSecretKeyRing($PrivKeyBundle, $secring)
-
-            # Insert the new key in to the key bundle
-            $PrivKeyBundle = [Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKeyRingBundle]::AddSecretKeyRing($NewBun, $copy)
-
-            # Close the original stream and open a new one to create the key ring
-            $stream.Close()
-
-            Write-Verbose "Saving the secret key ring with the updated key."
-            # Write new key ring
-            $SecretStream = [System.IO.File]::OpenWrite($SecKeyRing)
-            $PrivKeyBundle.Encode($SecretStream)
-            $SecretStream.Close()
-        }
-    }
-    End
-    {
-    }
-}
