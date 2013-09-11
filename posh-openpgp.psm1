@@ -5,16 +5,38 @@
 .DESCRIPTION
    Get a specified or all private keys from a OpenPGP key ring file.
 .EXAMPLE
-   Get-PGPSecretKey -KeyRing C:\95b4851b599cb231_sec.pgp -Id 95B4851B599CB231
+   Get-PGPSecretKey -KeyRing $env:APPDATA\gnupg\secring.gpg -Id 9F3761B0306E1ADB
    
 
-Id                     : 95B4851B599CB231
+Id                     : 9F3761B0306E1ADB
+IsSigningKey           : True
+IsMasterKey            : True
+KeyEncryptionAlgorithm : Aes256
+KeyId                  : -6973998088605263141
+PublicKey              : Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKey
+UserIds                : {Charlie Miller <cmiller@nsa.gov>}
+UserAttributes         : {}
+
+.EXAMPLE
+    Get-PGPSecretKey -KeyRing $env:APPDATA\gnupg\secring.gpg
+
+
+Id                     : FCA8A62932CC7353
 IsSigningKey           : True
 IsMasterKey            : True
 KeyEncryptionAlgorithm : Cast5
-KeyId                  : -7659350713736318415
+KeyId                  : -240759884188191917
 PublicKey              : Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKey
-UserIds                : {Carlos Perez <carlos@infosectactico.com>}
+UserIds                : {Charlie Brown <Snoopy@colvert.com>}
+UserAttributes         : {}
+
+Id                     : 9F3761B0306E1ADB
+IsSigningKey           : True
+IsMasterKey            : True
+KeyEncryptionAlgorithm : Aes256
+KeyId                  : -6973998088605263141
+PublicKey              : Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKey
+UserIds                : {Charlie Miller <cmiller@nsa.gov>}
 UserAttributes         : {}
 #>
 function Get-PGPSecretKey
@@ -635,6 +657,7 @@ function New-PGPDsaElGamalKeyPair
     }
 }
 
+
 <#
 .Synopsis
    Get More Modular Exponential (MODP) Diffie-Hellman groups for Internet Key Exchange (IKE)
@@ -741,6 +764,116 @@ function Get-MODP
                 "670C354E4ABC9804F1746C08CA237327FFFFFFFFFFFFFFFF"
                 return New-Object Org.BouncyCastle.Math.BigInteger -ArgumentList $sbs,16
             }
+        }
+    }
+    End
+    {
+    }
+}
+
+<#
+.Synopsis
+   Short description
+.DESCRIPTION
+   Long description
+.EXAMPLE
+   Update-PGPSecKeyPassPhrase $env:APPDATA\gnupg\secring.gpg -ID FCA8A62932CC7353 -OldPassphrase (Read-Host -AsSecureString) -NewPassphrase (Read-Host -AsSecureString) -Verbose
+VERBOSE: GEtting key FCA8A62932CC7353 from the secret key ring.
+VERBOSE: Key was found
+VERBOSE: Getting key encryption
+VERBOSE: Creating a copy of the key with the new passphrase and encrypting it.
+VERBOSE: Updating key ring
+VERBOSE: Saving the secret key ring with the updated key.
+#>
+function Update-PGPSecKeyPassPhrase
+{
+    [CmdletBinding()]
+    [OutputType([int])]
+    Param
+    (
+
+        [Parameter(Mandatory=$true,
+        ValueFromPipelineByPropertyName=$true,
+        Position=0)]
+        [ValidateScript({Test-Path $_})]
+        [string]$SecKeyRing,
+
+        [Parameter(Mandatory=$true,
+        ValueFromPipelineByPropertyName=$true,
+        Position=1)]
+        [string]$ID,
+
+        [Parameter(Mandatory=$true,
+        ValueFromPipelineByPropertyName=$true,
+        Position=2)]
+        [securestring]$OldPassphrase,
+
+        [Parameter(Mandatory=$true,
+        ValueFromPipelineByPropertyName=$true,
+        Position=3)]
+        [securestring]$NewPassphrase
+    )
+
+    Begin
+    {
+        $idlongformat = ($Id | foreach {[Convert]::ToInt64($_,16)})  -join ""
+    }
+    Process
+    {
+        [system.io.stream]$stream = [system.io.File]::OpenRead($SecKeyRing)
+
+        # Decode key ring
+        $instream = [Org.BouncyCastle.Bcpg.OpenPgp.PgpUtilities]::GetDecoderStream($stream)
+        $PrivKeyBundle = New-Object -TypeName Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKeyRingBundle -ArgumentList $instream
+        $SecureRand =  New-Object Org.BouncyCastle.Security.SecureRandom
+        Write-Verbose "GEtting key $($Id) from the secret key ring."
+        $secring = $PrivKeyBundle.GetSecretKeyRing($idlongformat)
+        if ($secring)
+        {
+            Write-Verbose "Key was found"
+            $seckey = $secring.GetSecretKey()
+            Write-Verbose "Getting key encryption"
+            $keyencalgo = $seckey.KeyEncryptionAlgorithm
+            Write-Verbose "Creating a copy of the key with the new passphrase and encrypting it."
+            # Create a copy with the new Passphrase
+
+            try
+            {
+            $copy = [Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKeyRing]::CopyWithNewPassword($secring, 
+                        ([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($OldPassphrase))),
+                        ([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($NewPassphrase))), 
+                        $keyencalgo, 
+                        $SecureRand)
+            }
+            catch
+            {
+                $error_message =  $_.Exception
+                if ($error_message -like "*Checksum mismatch*")
+                {
+                    Write-Error "Passphrase provided is not the correct one."
+                    return
+                }
+                else
+                {
+                    Write-Error $error_message
+                    return
+                }
+            }
+            Write-Verbose "Updating key ring"
+            # Remove the old key from the key bundle
+            $PrivKeyBundle = [Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKeyRingBundle]::RemoveSecretKeyRing($PrivKeyBundle, $secring)
+
+            # Insert the new key in to the key bundle
+            $PrivKeyBundle = [Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKeyRingBundle]::AddSecretKeyRing($NewBun, $copy)
+
+            # Close the original stream and open a new one to create the key ring
+            $stream.Close()
+
+            Write-Verbose "Saving the secret key ring with the updated key."
+            # Write new key ring
+            $SecretStream = [System.IO.File]::OpenWrite($SecKeyRing)
+            $PrivKeyBundle.Encode($SecretStream)
+            $SecretStream.Close()
         }
     }
     End
