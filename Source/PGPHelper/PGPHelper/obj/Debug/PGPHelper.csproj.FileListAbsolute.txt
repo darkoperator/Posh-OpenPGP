@@ -4,3 +4,9 @@ C:\Users\Carlos\documents\visual studio 2012\Projects\PGPHelper\PGPHelper\bin\De
 C:\Users\Carlos\documents\visual studio 2012\Projects\PGPHelper\PGPHelper\obj\Debug\PGPHelper.dll
 C:\Users\Carlos\documents\visual studio 2012\Projects\PGPHelper\PGPHelper\obj\Debug\PGPHelper.pdb
 C:\Users\Carlos\documents\visual studio 2012\Projects\PGPHelper\PGPHelper\obj\Debug\PGPHelper.csprojResolveAssemblyReference.cache
+C:\Users\Carlos\Documents\Posh-OpenPGP\Source\PGPHelper\PGPHelper\bin\Debug\PGPHelper.dll
+C:\Users\Carlos\Documents\Posh-OpenPGP\Source\PGPHelper\PGPHelper\bin\Debug\PGPHelper.pdb
+C:\Users\Carlos\Documents\Posh-OpenPGP\Source\PGPHelper\PGPHelper\bin\Debug\BouncyCastle.CryptoExt.dll
+C:\Users\Carlos\Documents\Posh-OpenPGP\Source\PGPHelper\PGPHelper\obj\Debug\PGPHelper.dll
+C:\Users\Carlos\Documents\Posh-OpenPGP\Source\PGPHelper\PGPHelper\obj\Debug\PGPHelper.pdb
+C:\Users\Carlos\Documents\Posh-OpenPGP\Source\PGPHelper\PGPHelper\obj\Debug\PGPHelper.csprojResolveAssemblyReference.cache

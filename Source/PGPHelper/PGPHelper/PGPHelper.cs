@@ -9,6 +9,10 @@ using Org.BouncyCastle.Security;
 using Org.BouncyCastle.Utilities.Encoders;
 using Org.BouncyCastle.Utilities.IO;
 
+
+// code from examples that came with bouncy castle :) and modified.
+// why re-invent the wheel.
+
 namespace PGPHelper
 {
     public static class KeyUtilities
@@ -34,7 +38,7 @@ namespace PGPHelper
          * @throws PGPException
          * @throws NoSuchProviderException
          */
-        public static PgpPrivateKey FindSecretKey(PgpSecretKeyRingBundle pgpSec, long keyID, char[] pass)
+        public static PgpPrivateKey FindSecretKeybyKeyID(PgpSecretKeyRingBundle pgpSec, long keyID, char[] pass)
         {
             PgpSecretKey pgpSecKey = pgpSec.GetSecretKey(keyID);
 
@@ -46,7 +50,19 @@ namespace PGPHelper
             return pgpSecKey.ExtractPrivateKey(pass);
         }
 
-        public static PgpPrivateKey FindSecretKey(PgpSecretKeyRingBundle pgpSec, string UserID, char[] pass)
+        public static PgpPrivateKey FindSecretKeybyKeyID(PgpSecretKeyRingBundle pgpSec, string keyID, char[] pass)
+        {
+            PgpSecretKey pgpSecKey = pgpSec.GetSecretKey(System.Convert.ToInt64(keyID, 16));
+
+            if (pgpSecKey == null)
+            {
+                return null;
+            }
+
+            return pgpSecKey.ExtractPrivateKey(pass);
+        }
+
+        public static PgpPrivateKey FindSecretKeyByUserID(PgpSecretKeyRingBundle pgpSec, string UserID, char[] pass)
         {
             
             foreach (PgpSecretKeyRing keyRing in pgpSec.GetKeyRings(UserID, true, true))
@@ -62,7 +78,7 @@ namespace PGPHelper
             return null;
         }
 
-        public static PgpPublicKey FindPublicKey(PgpPublicKeyRingBundle pgpPub, long keyID, char[] pass)
+        public static PgpPublicKey FindPublicKeyByKeyID(PgpPublicKeyRingBundle pgpPub, long keyID, char[] pass)
         {
             PgpPublicKey pgpPubKey = pgpPub.GetPublicKey(keyID);
 
@@ -74,7 +90,43 @@ namespace PGPHelper
             return pgpPubKey;
         }
 
-        public static PgpPublicKey[] FindPublicKey(PgpPublicKeyRingBundle pgpPub, string UserID, char[] pass)
+        public static PgpPublicKey[] FindPublicKeyByKeyID(PgpPublicKeyRingBundle pgpPub, string[] keyIDs, char[] pass)
+        {
+            PgpPublicKey[] pubKeyList = new PgpPublicKey[50];
+            int index = 0;
+
+            foreach (string pubKeyId in keyIDs)
+            {
+                PgpPublicKey pgpPubKey = pgpPub.GetPublicKey(System.Convert.ToInt64(pubKeyId, 16));
+
+                if (pgpPubKey != null)
+                {
+                    pubKeyList[index] = pgpPubKey;
+                    index++;
+                }
+            }
+            return pubKeyList;
+        }
+
+        public static PgpPublicKey[] FindPublicKeyByKeyID(PgpPublicKeyRingBundle pgpPub, long[] keyIDs, char[] pass)
+        {
+            PgpPublicKey[] pubKeyList = new PgpPublicKey[50];
+            int index = 0;
+
+            foreach (long pubKeyId in keyIDs)
+            {
+                PgpPublicKey pgpPubKey = pgpPub.GetPublicKey(pubKeyId);
+
+                if (pgpPubKey != null)
+                {
+                    pubKeyList[index] = pgpPubKey;
+                    index++;
+                }
+            }
+            return pubKeyList;
+        }
+
+        public static PgpPublicKey[] FindPublicKeyByUserID(PgpPublicKeyRingBundle pgpPub, string UserID, char[] pass)
         {
             PgpPublicKey[] Keys = new PgpPublicKey[50];
             int Index = 0;
@@ -85,6 +137,32 @@ namespace PGPHelper
                     
                     Keys[Index] = key;
                     Index++;
+                }
+            }
+            if (Keys.Length > 0)
+            {
+                return Keys;
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public static PgpPublicKey[] FindPublicKeybyUserID(PgpPublicKeyRingBundle pgpPub, string[] UserIDs, char[] pass)
+        {
+            PgpPublicKey[] Keys = new PgpPublicKey[50];
+            int Index = 0;
+            foreach (string UserID in UserIDs)
+            {
+                foreach (PgpPublicKeyRing keyRing in pgpPub.GetKeyRings(UserID, true, true))
+                {
+                    foreach (PgpPublicKey key in keyRing.GetPublicKeys())
+                    {
+
+                        Keys[Index] = key;
+                        Index++;
+                    }
                 }
             }
             if (Keys.Length > 0)
@@ -192,7 +270,7 @@ namespace PGPHelper
 
     }
 
-    public static class ByteArrayHandler
+    public static class SymmetricFileProcessor
     {
 
         /**
@@ -274,7 +352,8 @@ namespace PGPHelper
             char[] passPhrase,
             string fileName,
             SymmetricKeyAlgorithmTag algorithm,
-            bool armor)
+            bool armor,
+            bool verinfo = false)
         {
             if (fileName == null)
             {
@@ -286,22 +365,32 @@ namespace PGPHelper
             MemoryStream bOut = new MemoryStream();
 
             Stream output = bOut;
+            ArmoredOutputStream Aoutput = new ArmoredOutputStream(output);
             if (armor)
             {
-                output = new ArmoredOutputStream(output);
+                if (verinfo)
+                {
+                    Aoutput.SetHeader("Version", "Posh-OpenPGP");
+                }
             }
 
             PgpEncryptedDataGenerator encGen = new PgpEncryptedDataGenerator(algorithm, new SecureRandom());
             encGen.AddMethod(passPhrase);
-
-            Stream encOut = encGen.Open(output, compressedData.Length);
-
+            Stream encOut;
+            if (armor)
+            {
+                encOut = encGen.Open(Aoutput, compressedData.Length);
+            }
+            else
+            {
+                encOut = encGen.Open(output, compressedData.Length);
+            }
             encOut.Write(compressedData, 0, compressedData.Length);
             encOut.Close();
 
             if (armor)
             {
-                output.Close();
+                Aoutput.Close();
             }
 
             return bOut.ToArray();
@@ -339,11 +428,9 @@ namespace PGPHelper
         }
     }
 
-    public sealed class DetachedSignatureProcessor
+    public sealed class DetachedSignedFileProcessor
     {
-        private DetachedSignatureProcessor()
-        {
-        }
+        
 
         public static bool VerifySignature(
             string fileName,
@@ -469,7 +556,8 @@ namespace PGPHelper
         {
             if (armor)
             {
-                outputStream = new ArmoredOutputStream(outputStream);
+                 outputStream = new ArmoredOutputStream(outputStream);
+                
             }
 
             
@@ -498,6 +586,314 @@ namespace PGPHelper
                 outputStream.Close();
             }
         }
+    }
+
+    public sealed class ClearSignedFileProcessor
+    {
+        private ClearSignedFileProcessor()
+        {
+        }
+
+        private static int ReadInputLine(
+            MemoryStream bOut,
+            Stream fIn)
+        {
+            bOut.SetLength(0);
+
+            int lookAhead = -1;
+            int ch;
+
+            while ((ch = fIn.ReadByte()) >= 0)
+            {
+                bOut.WriteByte((byte)ch);
+                if (ch == '\r' || ch == '\n')
+                {
+                    lookAhead = ReadPassedEol(bOut, ch, fIn);
+                    break;
+                }
+            }
+
+            return lookAhead;
+        }
+
+        private static int ReadInputLine(
+            MemoryStream bOut,
+            int lookAhead,
+            Stream fIn)
+        {
+            bOut.SetLength(0);
+
+            int ch = lookAhead;
+
+            do
+            {
+                bOut.WriteByte((byte)ch);
+                if (ch == '\r' || ch == '\n')
+                {
+                    lookAhead = ReadPassedEol(bOut, ch, fIn);
+                    break;
+                }
+            }
+            while ((ch = fIn.ReadByte()) >= 0);
+
+            if (ch < 0)
+            {
+                lookAhead = -1;
+            }
+
+            return lookAhead;
+        }
+
+        private static int ReadPassedEol(
+            MemoryStream bOut,
+            int lastCh,
+            Stream fIn)
+        {
+            int lookAhead = fIn.ReadByte();
+
+            if (lastCh == '\r' && lookAhead == '\n')
+            {
+                bOut.WriteByte((byte)lookAhead);
+                lookAhead = fIn.ReadByte();
+            }
+
+            return lookAhead;
+        }
+
+        /*
+        * verify a clear text signed file
+        */
+        public static bool VerifyFile(
+            Stream inputStream,
+            Stream PubkeyRing,
+            string outFile)
+        {
+            ArmoredInputStream aIn = new ArmoredInputStream(inputStream);
+            Stream outStr = File.Create(outFile);
+
+            //
+            // write out signed section using the local line separator.
+            // note: trailing white space needs to be removed from the end of
+            // each line RFC 4880 Section 7.1
+            //
+            MemoryStream lineOut = new MemoryStream();
+            int lookAhead = ReadInputLine(lineOut, aIn);
+            byte[] newline = Encoding.ASCII.GetBytes(Environment.NewLine);
+
+            if (lookAhead != -1 && aIn.IsClearText())
+            {
+                byte[] line = lineOut.ToArray();
+                outStr.Write(line, 0, GetLengthWithoutSeparatorOrTrailingWhitespace(line));
+                outStr.Write(newline, 0, newline.Length);
+
+                while (lookAhead != -1 && aIn.IsClearText())
+                {
+                    lookAhead = ReadInputLine(lineOut, lookAhead, aIn);
+
+                    line = lineOut.ToArray();
+                    outStr.Write(line, 0, GetLengthWithoutSeparatorOrTrailingWhitespace(line));
+                    outStr.Write(newline, 0, newline.Length);
+                }
+            }
+
+            outStr.Close();
+
+            PgpPublicKeyRingBundle pgpRings = new PgpPublicKeyRingBundle(PubkeyRing);
+
+            PgpObjectFactory pgpFact = new PgpObjectFactory(aIn);
+            PgpSignatureList p3 = (PgpSignatureList)pgpFact.NextPgpObject();
+            PgpSignature sig = p3[0];
+
+            sig.InitVerify(pgpRings.GetPublicKey(sig.KeyId));
+
+            //
+            // read the input, making sure we ignore the last newline.
+            //
+            Stream sigIn = File.OpenRead(outFile);
+
+            lookAhead = ReadInputLine(lineOut, sigIn);
+
+            ProcessLine(sig, lineOut.ToArray());
+
+            if (lookAhead != -1)
+            {
+                do
+                {
+                    lookAhead = ReadInputLine(lineOut, lookAhead, sigIn);
+
+                    sig.Update((byte)'\r');
+                    sig.Update((byte)'\n');
+
+                    ProcessLine(sig, lineOut.ToArray());
+                }
+                while (lookAhead != -1);
+            }
+
+            //sigIn.Close();
+
+            if (sig.Verify())
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+
+        /*
+        * create a clear text signed file.
+        */
+        public static void SignFile(
+            string fileName,
+            PgpSecretKey pgpSecKey,
+            Stream outputStream,
+            char[] pass,
+            string digestName)
+        {
+            HashAlgorithmTag digest;
+
+            if (digestName.Equals("SHA256"))
+            {
+                digest = HashAlgorithmTag.Sha256;
+            }
+            else if (digestName.Equals("SHA384"))
+            {
+                digest = HashAlgorithmTag.Sha384;
+            }
+            else if (digestName.Equals("SHA512"))
+            {
+                digest = HashAlgorithmTag.Sha512;
+            }
+            else if (digestName.Equals("MD5"))
+            {
+                digest = HashAlgorithmTag.MD5;
+            }
+            else if (digestName.Equals("RIPEMD160"))
+            {
+                digest = HashAlgorithmTag.RipeMD160;
+            }
+            else
+            {
+                digest = HashAlgorithmTag.Sha1;
+            }
+
+            PgpPrivateKey pgpPrivKey = pgpSecKey.ExtractPrivateKey(pass);
+            PgpSignatureGenerator sGen = new PgpSignatureGenerator(pgpSecKey.PublicKey.Algorithm, digest);
+            PgpSignatureSubpacketGenerator spGen = new PgpSignatureSubpacketGenerator();
+
+            sGen.InitSign(PgpSignature.CanonicalTextDocument, pgpPrivKey);
+
+            IEnumerator enumerator = pgpSecKey.PublicKey.GetUserIds().GetEnumerator();
+            if (enumerator.MoveNext())
+            {
+                spGen.SetSignerUserId(false, (string)enumerator.Current);
+                sGen.SetHashedSubpackets(spGen.Generate());
+            }
+
+            Stream fIn = File.OpenRead(fileName);
+            ArmoredOutputStream aOut = new ArmoredOutputStream(outputStream);
+            aOut.SetHeader("Version","Posh-OpenPGP");
+            aOut.BeginClearText(digest);
+
+            //
+            // note the last \n/\r/\r\n in the file is ignored
+            //
+            MemoryStream lineOut = new MemoryStream();
+            int lookAhead = ReadInputLine(lineOut, fIn);
+
+            ProcessLine(aOut, sGen, lineOut.ToArray());
+
+            if (lookAhead != -1)
+            {
+                do
+                {
+                    lookAhead = ReadInputLine(lineOut, lookAhead, fIn);
+
+                    sGen.Update((byte)'\r');
+                    sGen.Update((byte)'\n');
+
+                    ProcessLine(aOut, sGen, lineOut.ToArray());
+                }
+                while (lookAhead != -1);
+            }
+
+            fIn.Close();
+
+            aOut.EndClearText();
+
+            BcpgOutputStream bOut = new BcpgOutputStream(aOut);
+
+            sGen.Generate().Encode(bOut);
+
+            aOut.Close();
+        }
+
+        private static void ProcessLine(
+            PgpSignature sig,
+            byte[] line)
+        {
+            // note: trailing white space needs to be removed from the end of
+            // each line for signature calculation RFC 4880 Section 7.1
+            int length = GetLengthWithoutWhiteSpace(line);
+            if (length > 0)
+            {
+                sig.Update(line, 0, length);
+            }
+        }
+
+        private static void ProcessLine(
+            Stream aOut,
+            PgpSignatureGenerator sGen,
+            byte[] line)
+        {
+            int length = GetLengthWithoutWhiteSpace(line);
+            if (length > 0)
+            {
+                sGen.Update(line, 0, length);
+            }
+
+            aOut.Write(line, 0, line.Length);
+        }
+
+        private static int GetLengthWithoutSeparatorOrTrailingWhitespace(byte[] line)
+        {
+            int end = line.Length - 1;
+
+            while (end >= 0 && IsWhiteSpace(line[end]))
+            {
+                end--;
+            }
+
+            return end + 1;
+        }
+
+        private static bool IsLineEnding(
+            byte b)
+        {
+            return b == '\r' || b == '\n';
+        }
+
+        private static int GetLengthWithoutWhiteSpace(
+            byte[] line)
+        {
+            int end = line.Length - 1;
+
+            while (end >= 0 && IsWhiteSpace(line[end]))
+            {
+                end--;
+            }
+
+            return end + 1;
+        }
+
+        private static bool IsWhiteSpace(
+            byte b)
+        {
+            return IsLineEnding(b) || b == '\t' || b == ' ';
+        }
+
     }
 
     public class PGPEncryptDecrypt
@@ -731,6 +1127,7 @@ namespace PGPHelper
             }
         }
 
+
         public static void Encrypt(string filePath, string OutputFilePath, string publicKeyFile)
         {
             Stream keyIn, fos;
@@ -741,6 +1138,7 @@ namespace PGPHelper
             fos.Close();
         }
 
+
         public static void Decrypt(string filePath, string privateKeyFile, string passPhrase, string pathToSaveFile)
         {
 
@@ -750,6 +1148,7 @@ namespace PGPHelper
             fin.Close();
             keyIn.Close();
         }
+
 
         public void SignAndEncryptFile(string actualFileName, 
                string embeddedFileName,

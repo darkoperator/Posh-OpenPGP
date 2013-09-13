@@ -7,16 +7,38 @@
 .DESCRIPTION
    Get a specified or all private keys from a OpenPGP key ring file.
 .EXAMPLE
-   Get-PGPSecretKey -KeyRing C:\95b4851b599cb231_sec.pgp -Id 95B4851B599CB231
+   Get-PGPSecretKey -KeyRing $env:APPDATA\gnupg\secring.gpg -Id 9F3761B0306E1ADB
    
 
-Id                     : 95B4851B599CB231
+Id                     : 9F3761B0306E1ADB
+IsSigningKey           : True
+IsMasterKey            : True
+KeyEncryptionAlgorithm : Aes256
+KeyId                  : -6973998088605263141
+PublicKey              : Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKey
+UserIds                : {Charlie Miller <cmiller@nsa.gov>}
+UserAttributes         : {}
+
+.EXAMPLE
+    Get-PGPSecretKey -KeyRing $env:APPDATA\gnupg\secring.gpg
+
+
+Id                     : FCA8A62932CC7353
 IsSigningKey           : True
 IsMasterKey            : True
 KeyEncryptionAlgorithm : Cast5
-KeyId                  : -7659350713736318415
+KeyId                  : -240759884188191917
 PublicKey              : Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKey
-UserIds                : {Carlos Perez <carlos@infosectactico.com>}
+UserIds                : {Charlie Brown <Snoopy@colvert.com>}
+UserAttributes         : {}
+
+Id                     : 9F3761B0306E1ADB
+IsSigningKey           : True
+IsMasterKey            : True
+KeyEncryptionAlgorithm : Aes256
+KeyId                  : -6973998088605263141
+PublicKey              : Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKey
+UserIds                : {Charlie Miller <cmiller@nsa.gov>}
 UserAttributes         : {}
 #>
 function Get-PGPSecretKey
@@ -119,7 +141,7 @@ function Get-PGPSecretKey
                     # Add some additional properties to the object
                     Add-Member -InputObject $kp -MemberType NoteProperty -Name "Id" -Value (($kp.KeyId  |  foreach { $_.ToString("X2") }) -join "")
                     #Add-Member -InputObject $kp -MemberType NoteProperty -Name "UserIds" -Value ($kp.PublicKey.GetUserIds())
-                    Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedSymetric" -Value $PreferedSymAlgos
+                    Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedSymmetric" -Value $PreferedSymAlgos
                     Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedHash" -Value $PreferedHashAlgos
                     Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedCompression" -Value $PreferedCompressionAlgos
                     $kp
@@ -164,7 +186,7 @@ function Get-PGPSecretKey
                             # Add some additional properties to the object
                             Add-Member -InputObject $kp -MemberType NoteProperty -Name "Id" -Value (($kp.KeyId  |  foreach { $_.ToString("X2") }) -join "")
                             #Add-Member -InputObject $kp -MemberType NoteProperty -Name "UserIds" -Value ($kp.PublicKey.GetUserIds())
-                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedSymetric" -Value $PreferedSymAlgos
+                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedSymmetric" -Value $PreferedSymAlgos
                             Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedHash" -Value $PreferedHashAlgos
                             Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedCompression" -Value $PreferedCompressionAlgos
                             $kp
@@ -314,8 +336,8 @@ function Get-PGPPublicKey
    Generates a new RSA OpenPGP Key pair.
 .DESCRIPTION
    Generates a new RSA OpenPGP Key pair. The keys default Size is of 2048 bits encrypted with CAST5.
-   The key has a Symetric Algorithm preference of  AES 256, AES 192, AES 128, TowFish, CAST5 and 3DES.
-   The key has al Asymetric Algorithum preference of SHA 256, SHA 384, SHA 512 and RipeMD160. It supports
+   The key has a Symmetric Algorithm preference of  AES 256, AES 192, AES 128, TowFish, CAST5 and 3DES.
+   The key has al Hashing Algorithum preference of SHA 256, SHA 384, SHA 512 and RipeMD160. It supports
    compression for ZLib, Zip and BZip2.
 .EXAMPLE
    New-PGPRSAKeyPair -Path c:\ -Identity "Carlos Perez" -Email "carlos@infosectactico.com" -PassPhrase (Read-Host -AsSecureString) -Verbose
@@ -369,7 +391,7 @@ function New-PGPRSAKeyPair
             "AES128",
             "AES196",
             "AES256")]
-        [string]$SymetricAlgorithm = "CAST5",
+        [string]$SymmetricAlgorithm = "CAST5",
 
         [Parameter(Mandatory=$false,
         ValueFromPipelineByPropertyName=$true)]
@@ -383,7 +405,7 @@ function New-PGPRSAKeyPair
 
     Begin
     {
-        switch ($SymetricAlgorithm)
+        switch ($SymmetricAlgorithm)
         {
             '3DES'     {$SymAlgo = [Org.BouncyCastle.Bcpg.SymmetricKeyAlgorithmTag]::TripleDes}
             'CAST5'    {$SymAlgo = [Org.BouncyCastle.Bcpg.SymmetricKeyAlgorithmTag]::Cast5}
@@ -439,7 +461,7 @@ function New-PGPRSAKeyPair
             $keyparams.private,
             ([datetime]::UtcNow),
             "$($Identity) <$($email)>",
-            $SymetricAlgorithm,
+            $SymAlgo,
             ([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($PassPhrase))),
             $HashPacket.Generate(),
             $null,
@@ -507,9 +529,9 @@ function New-PGPRSAKeyPair
    Generates a OpenPGP DSA/El Gamal key pair.
 .DESCRIPTION
    Generates a new DSA/El Gamal OpenPGP Key pair. The keys default Size is of 2048 bits for El Gamal and 1024bits for DSA
-   (Do to current limitations of the library used only 1024bit keys for DSA can be made)encrypted with AES-256.
+   (Do to current limitations of the library not supporting DSA2 for key generation only 1024bit keys for DSA can be made)encrypted with AES-256.
    The key has a Symetric Algorithm preference of  AES 256, AES 192, AES 128, TowFish, CAST5 and 3DES.
-   The key has al Asymetric Algorithum preference of SHA 256, SHA 384, SHA 512 and RipeMD160. It supports
+   The key has a Hashing Algorithum preference of SHA 256, SHA 384, SHA 512 and RipeMD160. It supports
    compression for ZLib, Zip and BZip2.
 .EXAMPLE
    New-PGPDsaElGamalKeyPair -Path c:\ -Identity "Carlos Perez" -Email "gamal@tes.com" -PassPhrase (Read-Host -AsSecureString) -Verbose
@@ -570,7 +592,7 @@ function New-PGPDsaElGamalKeyPair
             "AES128",
             "AES196",
             "AES256")]
-        [string]$SymetricAlgorithm = "AES256",
+        [string]$SymmetricAlgorithm = "AES256",
 
         [Parameter(Mandatory=$false,
         ValueFromPipelineByPropertyName=$true)]
@@ -584,7 +606,7 @@ function New-PGPDsaElGamalKeyPair
 
     Begin
     {
-        switch ($SymetricAlgorithm)
+        switch ($SymmetricAlgorithm)
         {
             '3DES'     {$SymAlgo = [Org.BouncyCastle.Bcpg.SymmetricKeyAlgorithmTag]::TripleDes}
             'CAST5'    {$SymAlgo = [Org.BouncyCastle.Bcpg.SymmetricKeyAlgorithmTag]::Cast5}
@@ -616,7 +638,8 @@ function New-PGPDsaElGamalKeyPair
         $pgen = New-Object Org.BouncyCastle.Crypto.Generators.DsaParametersGenerator
         $pgen.Init(1024,80,$SecureRand)
         $DSAParameters = $pgen.GenerateParameters()
-        $DSAOps = New-Object Org.BouncyCastle.Crypto.Parameters.DsaKeyGenerationParameters -ArgumentList $SecureRand,$DSAParameters
+        $DSAOps = New-Object Org.BouncyCastle.Crypto.Parameters.DsaKeyGenerationParameters -ArgumentList $SecureRand,
+                  $DSAParameters
         $DSAGenerator.Init($DSAOps)
         # The library limits DSA creation to 1024
         Write-Verbose "Generating 1024bit DSA Key."
@@ -628,8 +651,10 @@ function New-PGPDsaElGamalKeyPair
         $ElGamalGenerator = [Org.BouncyCastle.Security.GeneratorUtilities]::GetKeyPairGenerator("ELGAMAL")
         $EGPrime = Get-MODP -BitSize $ElGamalKeySize
         $EGBaseGenerator = New-Object Org.BouncyCastle.Math.BigInteger -ArgumentList "2",16
-        $ElGamalParameterSet = New-Object Org.BouncyCastle.Crypto.Parameters.ElGamalParameters -ArgumentList $EGPrime,$EGBaseGenerator
-        $ELGKP = New-Object Org.BouncyCastle.Crypto.Parameters.ElGamalKeyGenerationParameters -ArgumentList $SecureRandEG, $ElGamalParameterSet
+        $ElGamalParameterSet = New-Object Org.BouncyCastle.Crypto.Parameters.ElGamalParameters -ArgumentList $EGPrime,
+                               $EGBaseGenerator
+        $ELGKP = New-Object Org.BouncyCastle.Crypto.Parameters.ElGamalKeyGenerationParameters -ArgumentList $SecureRandEG, 
+                 $ElGamalParameterSet
         $ElGamalGenerator.Init($ELGKP)
         Write-Verbose "Generating $($ElGamalKeySize) El Gamal key"
         $ElGamalKeyPair = $ElGamalGenerator.GenerateKeyPair()
@@ -844,4 +869,112 @@ function Get-MODP
     }
 }
 
+<#
+.Synopsis
+   Short description
+.DESCRIPTION
+   Long description
+.EXAMPLE
+   Update-PGPSecKeyPassPhrase $env:APPDATA\gnupg\secring.gpg -ID FCA8A62932CC7353 -OldPassphrase (Read-Host -AsSecureString) -NewPassphrase (Read-Host -AsSecureString) -Verbose
+VERBOSE: GEtting key FCA8A62932CC7353 from the secret key ring.
+VERBOSE: Key was found
+VERBOSE: Getting key encryption
+VERBOSE: Creating a copy of the key with the new passphrase and encrypting it.
+VERBOSE: Updating key ring
+VERBOSE: Saving the secret key ring with the updated key.
+#>
+function Update-PGPSecKeyPassPhrase
+{
+    [CmdletBinding()]
+    [OutputType([int])]
+    Param
+    (
 
+        [Parameter(Mandatory=$true,
+        ValueFromPipelineByPropertyName=$true,
+        Position=0)]
+        [ValidateScript({Test-Path $_})]
+        [string]$SecKeyRing,
+
+        [Parameter(Mandatory=$true,
+        ValueFromPipelineByPropertyName=$true,
+        Position=1)]
+        [string]$ID,
+
+        [Parameter(Mandatory=$true,
+        ValueFromPipelineByPropertyName=$true,
+        Position=2)]
+        [securestring]$OldPassphrase,
+
+        [Parameter(Mandatory=$true,
+        ValueFromPipelineByPropertyName=$true,
+        Position=3)]
+        [securestring]$NewPassphrase
+    )
+
+    Begin
+    {
+        $idlongformat = ($Id | foreach {[Convert]::ToInt64($_,16)})  -join ""
+    }
+    Process
+    {
+        [system.io.stream]$stream = [system.io.File]::OpenRead($SecKeyRing)
+
+        # Decode key ring
+        $instream = [Org.BouncyCastle.Bcpg.OpenPgp.PgpUtilities]::GetDecoderStream($stream)
+        $PrivKeyBundle = New-Object -TypeName Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKeyRingBundle -ArgumentList $instream
+        $SecureRand =  New-Object Org.BouncyCastle.Security.SecureRandom
+        Write-Verbose "GEtting key $($Id) from the secret key ring."
+        $secring = $PrivKeyBundle.GetSecretKeyRing($idlongformat)
+        if ($secring)
+        {
+            Write-Verbose "Key was found"
+            $seckey = $secring.GetSecretKey()
+            Write-Verbose "Getting key encryption"
+            $keyencalgo = $seckey.KeyEncryptionAlgorithm
+            Write-Verbose "Creating a copy of the key with the new passphrase and encrypting it."
+            # Create a copy with the new Passphrase
+
+            try
+            {
+            $copy = [Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKeyRing]::CopyWithNewPassword($secring, 
+                        ([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($OldPassphrase))),
+                        ([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($NewPassphrase))), 
+                        $keyencalgo, 
+                        $SecureRand)
+            }
+            catch
+            {
+                $error_message =  $_.Exception
+                if ($error_message -like "*Checksum mismatch*")
+                {
+                    Write-Error "Passphrase provided is not the correct one."
+                    return
+                }
+                else
+                {
+                    Write-Error $error_message
+                    return
+                }
+            }
+            Write-Verbose "Updating key ring"
+            # Remove the old key from the key bundle
+            $PrivKeyBundle = [Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKeyRingBundle]::RemoveSecretKeyRing($PrivKeyBundle, $secring)
+
+            # Insert the new key in to the key bundle
+            $PrivKeyBundle = [Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKeyRingBundle]::AddSecretKeyRing($NewBun, $copy)
+
+            # Close the original stream and open a new one to create the key ring
+            $stream.Close()
+
+            Write-Verbose "Saving the secret key ring with the updated key."
+            # Write new key ring
+            $SecretStream = [System.IO.File]::OpenWrite($SecKeyRing)
+            $PrivKeyBundle.Encode($SecretStream)
+            $SecretStream.Close()
+        }
+    }
+    End
+    {
+    }
+}
