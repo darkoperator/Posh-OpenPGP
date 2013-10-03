@@ -430,9 +430,9 @@ namespace PGPHelper
 
     public sealed class DetachedSignedFileProcessor
     {
-        
 
-        public static bool VerifySignature(
+
+        public static PGPSignatureInfo VerifySignature(
             string fileName,
             string Signature,
             string keyFileName)
@@ -447,7 +447,7 @@ namespace PGPHelper
         /**
         * verify the signature in in against the file fileName.
         */
-        public static bool VerifySignature(
+        public static PGPSignatureInfo VerifySignature(
             string fileName,
             Stream Signature,
             Stream keyIn)
@@ -484,13 +484,28 @@ namespace PGPHelper
 
             dIn.Close();
 
+            PGPSignatureInfo siginfo = new PGPSignatureInfo();
+
             if (sig.Verify())
             {
-                return true;
+                siginfo.KeyID = String.Format("{0:X}", sig.KeyId);
+                siginfo.Valid = true;
+                siginfo.Version = sig.Version;
+                siginfo.Created = sig.CreationTime;
+                siginfo.HashAlgorithm = sig.HashAlgorithm;
+                siginfo.Signature = sig;
+                return siginfo;
             }
             else
             {
-                return false;
+                siginfo.KeyID = String.Format("{0:X}", sig.KeyId);
+                siginfo.Valid = false;
+                siginfo.Version = sig.Version;
+                siginfo.Created = sig.CreationTime;
+                siginfo.HashAlgorithm = sig.HashAlgorithm;
+                siginfo.Signature = sig;
+
+                return siginfo;
             }
         }
 
@@ -499,12 +514,13 @@ namespace PGPHelper
             string keyFileName,
             string outputFileName,
             char[] pass,
-            bool armor)
+            bool armor,
+            string digestName)
         {
             using (Stream keyIn = File.OpenRead(keyFileName),
                 output = File.OpenWrite(outputFileName))
             {
-                CreateSignature(inputFileName, keyIn, output, pass, armor);
+                CreateSignature(inputFileName, keyIn, output, pass, armor, digestName);
             }
         }
 
@@ -513,17 +529,48 @@ namespace PGPHelper
             Stream keyIn,
             Stream outputStream,
             char[] pass,
-            bool armor)
+            bool armor,
+            string digestName)
         {
+            PgpSecretKey pgpSec = KeyUtilities.ReadSecretKey(keyIn);
+            PgpPrivateKey pgpPrivKey = pgpSec.ExtractPrivateKey(pass);
+
+            HashAlgorithmTag digest;
+
+            if (digestName.Equals("SHA256"))
+            {
+                digest = HashAlgorithmTag.Sha256;
+            }
+            else if (digestName.Equals("SHA384"))
+            {
+                digest = HashAlgorithmTag.Sha384;
+            }
+            else if (digestName.Equals("SHA512"))
+            {
+                digest = HashAlgorithmTag.Sha512;
+            }
+            else if (digestName.Equals("MD5"))
+            {
+                digest = HashAlgorithmTag.MD5;
+            }
+            else if (digestName.Equals("RIPEMD160"))
+            {
+                digest = HashAlgorithmTag.RipeMD160;
+            }
+            else
+            {
+                digest = HashAlgorithmTag.Sha512;
+            }
+
+
             if (armor)
             {
                 outputStream = new ArmoredOutputStream(outputStream);
             }
 
-            PgpSecretKey pgpSec = KeyUtilities.ReadSecretKey(keyIn);
-            PgpPrivateKey pgpPrivKey = pgpSec.ExtractPrivateKey(pass);
+            
             PgpSignatureGenerator sGen = new PgpSignatureGenerator(
-                pgpSec.PublicKey.Algorithm, HashAlgorithmTag.Sha1);
+                pgpSec.PublicKey.Algorithm, digest);
 
             sGen.InitSign(PgpSignature.BinaryDocument, pgpPrivKey);
 
@@ -552,7 +599,8 @@ namespace PGPHelper
             PgpSecretKey keyIn,
             Stream outputStream,
             char[] pass,
-            bool armor)
+            bool armor,
+            string digestName)
         {
             if (armor)
             {
@@ -560,10 +608,36 @@ namespace PGPHelper
                 
             }
 
-            
+            HashAlgorithmTag digest;
+
+            if (digestName.Equals("SHA256"))
+            {
+                digest = HashAlgorithmTag.Sha256;
+            }
+            else if (digestName.Equals("SHA384"))
+            {
+                digest = HashAlgorithmTag.Sha384;
+            }
+            else if (digestName.Equals("SHA512"))
+            {
+                digest = HashAlgorithmTag.Sha512;
+            }
+            else if (digestName.Equals("MD5"))
+            {
+                digest = HashAlgorithmTag.MD5;
+            }
+            else if (digestName.Equals("RIPEMD160"))
+            {
+                digest = HashAlgorithmTag.RipeMD160;
+            }
+            else
+            {
+                digest = HashAlgorithmTag.Sha1;
+            }
+
             PgpPrivateKey pgpPrivKey = keyIn.ExtractPrivateKey(pass);
             PgpSignatureGenerator sGen = new PgpSignatureGenerator(
-                keyIn.PublicKey.Algorithm, HashAlgorithmTag.Sha1);
+                keyIn.PublicKey.Algorithm, digest);
 
             sGen.InitSign(PgpSignature.BinaryDocument, pgpPrivKey);
 
@@ -663,14 +737,13 @@ namespace PGPHelper
         /*
         * verify a clear text signed file
         */
-        public static bool VerifyFile(
+        public static PGPSignatureInfo VerifyFile(
             Stream inputStream,
-            Stream PubkeyRing,
-            string outFile)
+            Stream PubkeyRing)
         {
             ArmoredInputStream aIn = new ArmoredInputStream(inputStream);
-            Stream outStr = File.Create(outFile);
-
+            
+            Stream outStr = new MemoryStream();
             //
             // write out signed section using the local line separator.
             // note: trailing white space needs to be removed from the end of
@@ -696,7 +769,7 @@ namespace PGPHelper
                 }
             }
 
-            outStr.Close();
+            //outStr.Close();
 
             PgpPublicKeyRingBundle pgpRings = new PgpPublicKeyRingBundle(PubkeyRing);
 
@@ -709,8 +782,10 @@ namespace PGPHelper
             //
             // read the input, making sure we ignore the last newline.
             //
-            Stream sigIn = File.OpenRead(outFile);
+            Stream sigIn = outStr;
 
+            // Set position of stream to start.
+            sigIn.Position = 0;
             lookAhead = ReadInputLine(lineOut, sigIn);
 
             ProcessLine(sig, lineOut.ToArray());
@@ -729,15 +804,28 @@ namespace PGPHelper
                 while (lookAhead != -1);
             }
 
-            //sigIn.Close();
+            PGPSignatureInfo siginfo = new PGPSignatureInfo();
 
             if (sig.Verify())
             {
-                return true;
+                siginfo.KeyID = String.Format("{0:X}", sig.KeyId);
+                siginfo.Valid = true;
+                siginfo.Version = sig.Version;
+                siginfo.Created = sig.CreationTime;
+                siginfo.HashAlgorithm = sig.HashAlgorithm;
+                siginfo.Signature = sig;
+                return siginfo;
             }
             else
             {
-                return false;
+                siginfo.KeyID = String.Format("{0:X}", sig.KeyId);
+                siginfo.Valid = false;
+                siginfo.Version = sig.Version;
+                siginfo.Created = sig.CreationTime;
+                siginfo.HashAlgorithm = sig.HashAlgorithm;
+                siginfo.Signature = sig;
+
+                return siginfo;
             }
         }
 
@@ -746,11 +834,12 @@ namespace PGPHelper
         * create a clear text signed file.
         */
         public static void SignFile(
-            string fileName,
-            PgpSecretKey pgpSecKey,
-            Stream outputStream,
-            char[] pass,
-            string digestName)
+                    //string fileName,
+                    Stream fIn,
+                    PgpSecretKey pgpSecKey,
+                    Stream outputStream,
+                    char[] pass,
+                    string digestName)
         {
             HashAlgorithmTag digest;
 
@@ -779,6 +868,7 @@ namespace PGPHelper
                 digest = HashAlgorithmTag.Sha1;
             }
 
+
             PgpPrivateKey pgpPrivKey = pgpSecKey.ExtractPrivateKey(pass);
             PgpSignatureGenerator sGen = new PgpSignatureGenerator(pgpSecKey.PublicKey.Algorithm, digest);
             PgpSignatureSubpacketGenerator spGen = new PgpSignatureSubpacketGenerator();
@@ -792,9 +882,9 @@ namespace PGPHelper
                 sGen.SetHashedSubpackets(spGen.Generate());
             }
 
-            Stream fIn = File.OpenRead(fileName);
+            //Stream fIn = File.OpenRead(fileName);
             ArmoredOutputStream aOut = new ArmoredOutputStream(outputStream);
-            aOut.SetHeader("Version","Posh-OpenPGP");
+
             aOut.BeginClearText(digest);
 
             //
@@ -829,6 +919,7 @@ namespace PGPHelper
 
             aOut.Close();
         }
+
 
         private static void ProcessLine(
             PgpSignature sig,
@@ -1237,4 +1328,16 @@ namespace PGPHelper
         }
 
     }
+
+
+    public class PGPSignatureInfo
+    {
+        public bool Valid;
+        public DateTime Created;
+        public string KeyID;
+        public HashAlgorithmTag HashAlgorithm;
+        public int Version;
+        public PgpSignature Signature;
+    }
 }
+
