@@ -4,13 +4,30 @@
 
 <#
 .Synopsis
-   Short description
+   Clear OpenPGP Signs a text file or string.
 .DESCRIPTION
-   Long description
+   Clear OpenPGP Signs a text file or string. In multi string a carrige return must be added to to the end
+   or an empty line must be present for proper formating.
 .EXAMPLE
-   Example of how to use this cmdlet
+   New-PGPClearSignature -SecretKey $seckey -File C:\evidence.txt -PassPhrase (Read-Host -AsSecureString) -OutFile C:\evidence.asc
 .EXAMPLE
-   Another example of how to use this cmdlet
+   $seckey = Get-PGPSecretKey -KeyRing $env:APPDATA\gnupg\secring.gpg -UserId "darkoperator" -MatchPartial
+PS C:\> $message = New-PGPClearSignature -SecretKey $seckey -Text "This is my ubber secret message`n" -PassPhrase (Read-Host -AsSecureString)
+PS C:\> $creds = Get-Credential carlos_perez@darkoperator.com
+PS C:\> $param = @{
+    SmtpServer = 'smtp.gmail.com'
+    Port = 587
+    UseSsl = $true
+    Credential  = $creds
+    From = 'carlos_perez@darkoperator.com'
+    To = 'cperezotero@gmail.com.com'
+    Subject = 'My Secret Message'
+    Body = "$($message -join "`r`n")"
+}
+ 
+PS C:\> Send-MailMessage @param -Verbose
+
+Sends a Signed OpenPGP Email
 #>
 function New-PGPClearSignature
 {
@@ -111,13 +128,19 @@ function New-PGPClearSignature
 
 <#
 .Synopsis
-   Short description
+   Verifies an OpenPGP clearsigned file or string.
 .DESCRIPTION
-   Long description
+   Verifies an OpenPGP clearsigned file or string.
 .EXAMPLE
-   Example of how to use this cmdlet
-.EXAMPLE
-   Another example of how to use this cmdlet
+   Confirm-PGPClearSignature -File C:\evidence.asc -KeyRing $env:APPDATA\gnupg\pubring.gpg
+
+
+Valid         : True
+Created       : 10/4/2013 1:10:16 AM
+KeyID         : 48E6AA1C3ED92AC3
+HashAlgorithm : Sha512
+Version       : 4
+Signature     : Org.BouncyCastle.Bcpg.OpenPgp.PgpSignature
 #>
 function Confirm-PGPClearSignature
 {
