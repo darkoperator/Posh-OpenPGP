@@ -63,8 +63,7 @@ namespace PGPHelper
         }
 
         public static PgpPrivateKey FindSecretKeyByUserID(PgpSecretKeyRingBundle pgpSec, string UserID, char[] pass)
-        {
-            
+        {  
             foreach (PgpSecretKeyRing keyRing in pgpSec.GetKeyRings(UserID, true, true))
             {
                 foreach (PgpSecretKey key in keyRing.GetSecretKeys())
@@ -78,7 +77,7 @@ namespace PGPHelper
             return null;
         }
 
-        public static PgpPublicKey FindPublicKeyByKeyID(PgpPublicKeyRingBundle pgpPub, long keyID, char[] pass)
+        public static PgpPublicKey FindPublicKeyByKeyID(PgpPublicKeyRingBundle pgpPub, long keyID)
         {
             PgpPublicKey pgpPubKey = pgpPub.GetPublicKey(keyID);
 
@@ -90,7 +89,7 @@ namespace PGPHelper
             return pgpPubKey;
         }
 
-        public static PgpPublicKey[] FindPublicKeyByKeyID(PgpPublicKeyRingBundle pgpPub, string[] keyIDs, char[] pass)
+        public static PgpPublicKey[] FindPublicKeyByKeyID(PgpPublicKeyRingBundle pgpPub, string[] keyIDs)
         {
             PgpPublicKey[] pubKeyList = new PgpPublicKey[50];
             int index = 0;
@@ -108,7 +107,7 @@ namespace PGPHelper
             return pubKeyList;
         }
 
-        public static PgpPublicKey[] FindPublicKeyByKeyID(PgpPublicKeyRingBundle pgpPub, long[] keyIDs, char[] pass)
+        public static PgpPublicKey[] FindPublicKeyByKeyID(PgpPublicKeyRingBundle pgpPub, long[] keyIDs)
         {
             PgpPublicKey[] pubKeyList = new PgpPublicKey[50];
             int index = 0;
@@ -126,7 +125,7 @@ namespace PGPHelper
             return pubKeyList;
         }
 
-        public static PgpPublicKey[] FindPublicKeyByUserID(PgpPublicKeyRingBundle pgpPub, string UserID, char[] pass)
+        public static PgpPublicKey[] FindPublicKeyByUserID(PgpPublicKeyRingBundle pgpPub, string UserID)
         {
             PgpPublicKey[] Keys = new PgpPublicKey[50];
             int Index = 0;
@@ -284,9 +283,7 @@ namespace PGPHelper
         * @exception IOException
         * @exception PgpException
         */
-        public static byte[] Decrypt(
-            byte[] encrypted,
-            char[] passPhrase)
+        public static byte[] Decrypt(byte[] encrypted, char[] passPhrase)
         {
             Stream inputStream = new MemoryStream(encrypted);
 
@@ -353,17 +350,46 @@ namespace PGPHelper
             string fileName,
             SymmetricKeyAlgorithmTag algorithm,
             bool armor,
-            bool verinfo = false)
+            string compressionName,
+            bool verinfo = false,
+            string comment = "")
         {
             if (fileName == null)
             {
                 fileName = PgpLiteralData.Console;
             }
 
-            byte[] compressedData = Compress(clearData, fileName, CompressionAlgorithmTag.Zip);
+            // Select the specified compression
+            CompressionAlgorithmTag comptype;
+
+            if (string.Equals(compressionName, "Uncompressed", StringComparison.CurrentCultureIgnoreCase))
+            {
+                comptype = CompressionAlgorithmTag.Uncompressed;
+            }
+            else if (string.Equals(compressionName, "Zip", StringComparison.CurrentCultureIgnoreCase))
+            {
+                comptype = CompressionAlgorithmTag.Zip;
+            }
+            else if (string.Equals(compressionName, "Zlib", StringComparison.CurrentCultureIgnoreCase))
+            {
+                comptype = CompressionAlgorithmTag.ZLib;
+            }
+            else if (string.Equals(compressionName, "BZip2", StringComparison.CurrentCultureIgnoreCase))
+            {
+                comptype = CompressionAlgorithmTag.BZip2;
+            }
+            else
+            {
+                comptype = CompressionAlgorithmTag.Zip;
+            }
+
+            // Compress the data.
+
+            byte[] compressedData = Compress(clearData, fileName, comptype);
 
             MemoryStream bOut = new MemoryStream();
 
+            // Set the Armour stream and info.
             Stream output = bOut;
             ArmoredOutputStream Aoutput = new ArmoredOutputStream(output);
             if (armor)
@@ -372,8 +398,13 @@ namespace PGPHelper
                 {
                     Aoutput.SetHeader("Version", "Posh-OpenPGP");
                 }
+                if (comment.Length > 0)
+                {
+                    Aoutput.SetHeader("Comment", comment);
+                }
             }
 
+            // Encrypt the data.
             PgpEncryptedDataGenerator encGen = new PgpEncryptedDataGenerator(algorithm, new SecureRandom());
             encGen.AddMethod(passPhrase);
             Stream encOut;
@@ -537,23 +568,23 @@ namespace PGPHelper
 
             HashAlgorithmTag digest;
 
-            if (digestName.Equals("SHA256"))
+            if (string.Equals(digestName, "Sha256", StringComparison.CurrentCultureIgnoreCase))
             {
                 digest = HashAlgorithmTag.Sha256;
             }
-            else if (digestName.Equals("SHA384"))
+            else if (string.Equals(digestName, "Sha384", StringComparison.CurrentCultureIgnoreCase))
             {
                 digest = HashAlgorithmTag.Sha384;
             }
-            else if (digestName.Equals("SHA512"))
+            else if (string.Equals(digestName, "Sha512", StringComparison.CurrentCultureIgnoreCase))
             {
                 digest = HashAlgorithmTag.Sha512;
             }
-            else if (digestName.Equals("MD5"))
+            else if (string.Equals(digestName, "MD5", StringComparison.CurrentCultureIgnoreCase))
             {
                 digest = HashAlgorithmTag.MD5;
             }
-            else if (digestName.Equals("RIPEMD160"))
+            else if (string.Equals(digestName, "RipeMD160", StringComparison.CurrentCultureIgnoreCase))
             {
                 digest = HashAlgorithmTag.RipeMD160;
             }
@@ -568,7 +599,7 @@ namespace PGPHelper
                 outputStream = new ArmoredOutputStream(outputStream);
             }
 
-            
+          
             PgpSignatureGenerator sGen = new PgpSignatureGenerator(
                 pgpSec.PublicKey.Algorithm, digest);
 
@@ -610,29 +641,29 @@ namespace PGPHelper
 
             HashAlgorithmTag digest;
 
-            if (digestName.Equals("SHA256"))
+            if (string.Equals(digestName, "Sha256", StringComparison.CurrentCultureIgnoreCase))
             {
                 digest = HashAlgorithmTag.Sha256;
             }
-            else if (digestName.Equals("SHA384"))
+            else if (string.Equals(digestName, "Sha384", StringComparison.CurrentCultureIgnoreCase))
             {
                 digest = HashAlgorithmTag.Sha384;
             }
-            else if (digestName.Equals("SHA512"))
+            else if (string.Equals(digestName, "Sha512", StringComparison.CurrentCultureIgnoreCase))
             {
                 digest = HashAlgorithmTag.Sha512;
             }
-            else if (digestName.Equals("MD5"))
+            else if (string.Equals(digestName, "MD5", StringComparison.CurrentCultureIgnoreCase))
             {
                 digest = HashAlgorithmTag.MD5;
             }
-            else if (digestName.Equals("RIPEMD160"))
+            else if (string.Equals(digestName, "RipeMD160", StringComparison.CurrentCultureIgnoreCase))
             {
                 digest = HashAlgorithmTag.RipeMD160;
             }
             else
             {
-                digest = HashAlgorithmTag.Sha1;
+                digest = HashAlgorithmTag.Sha512;
             }
 
             PgpPrivateKey pgpPrivKey = keyIn.ExtractPrivateKey(pass);
@@ -839,33 +870,35 @@ namespace PGPHelper
                     PgpSecretKey pgpSecKey,
                     Stream outputStream,
                     char[] pass,
-                    string digestName)
+                    string digestName,
+                    bool version = true
+            )
         {
             HashAlgorithmTag digest;
 
-            if (digestName.Equals("SHA256"))
+            if (string.Equals(digestName, "Sha256", StringComparison.CurrentCultureIgnoreCase))
             {
                 digest = HashAlgorithmTag.Sha256;
             }
-            else if (digestName.Equals("SHA384"))
+            else if (string.Equals(digestName, "Sha384", StringComparison.CurrentCultureIgnoreCase))
             {
                 digest = HashAlgorithmTag.Sha384;
             }
-            else if (digestName.Equals("SHA512"))
+            else if (string.Equals(digestName, "Sha512", StringComparison.CurrentCultureIgnoreCase))
             {
                 digest = HashAlgorithmTag.Sha512;
             }
-            else if (digestName.Equals("MD5"))
+            else if (string.Equals(digestName, "MD5", StringComparison.CurrentCultureIgnoreCase))
             {
                 digest = HashAlgorithmTag.MD5;
             }
-            else if (digestName.Equals("RIPEMD160"))
+            else if (string.Equals(digestName, "RipeMD160", StringComparison.CurrentCultureIgnoreCase))
             {
                 digest = HashAlgorithmTag.RipeMD160;
             }
             else
             {
-                digest = HashAlgorithmTag.Sha1;
+                digest = HashAlgorithmTag.Sha512;
             }
 
 
@@ -884,6 +917,10 @@ namespace PGPHelper
 
             //Stream fIn = File.OpenRead(fileName);
             ArmoredOutputStream aOut = new ArmoredOutputStream(outputStream);
+            if (version)
+            {
+                aOut.SetHeader("Version", "Posh-OpenPGP");
+            }
 
             aOut.BeginClearText(digest);
 
@@ -1049,6 +1086,96 @@ namespace PGPHelper
         /**
         * decrypt the passed in message stream
         */
+        public static void DecryptFile(Stream inputStream, PgpSecretKey pgpSecKey, char[] passwd, string pathToSaveFile)
+        {
+
+            inputStream = PgpUtilities.GetDecoderStream(inputStream);
+
+                PgpObjectFactory pgpF = new PgpObjectFactory(inputStream);
+                PgpEncryptedDataList enc;
+                PgpObject o = pgpF.NextPgpObject();
+
+                //
+                // the first object might be a PGP marker packet.
+                //
+
+                if (o is PgpEncryptedDataList)
+                {
+                    enc = (PgpEncryptedDataList)o;
+                }
+
+                else
+                {
+                    enc = (PgpEncryptedDataList)pgpF.NextPgpObject();
+                }
+
+                //
+                // find the secret key
+                //
+
+                PgpPrivateKey sKey = null;
+                PgpPublicKeyEncryptedData pbe = null;
+                
+
+                foreach (PgpPublicKeyEncryptedData pked in enc.GetEncryptedDataObjects())
+                {
+                    sKey = pgpSecKey.ExtractPrivateKey(passwd);
+
+                    if (sKey != null)
+                    {
+                        pbe = pked;
+                        break;
+                    }
+                }
+
+                if (sKey == null)
+                {
+                    throw new ArgumentException("secret key for message not found.");
+                }
+
+                Stream clear = pbe.GetDataStream(sKey);
+                PgpObjectFactory plainFact = new PgpObjectFactory(clear);
+                PgpObject message = plainFact.NextPgpObject();
+
+                if (message is PgpCompressedData)
+                {
+                    PgpCompressedData cData = (PgpCompressedData)message;
+                    PgpObjectFactory pgpFact = new PgpObjectFactory(cData.GetDataStream());
+                    message = pgpFact.NextPgpObject();
+                }
+
+                if (message is PgpLiteralData)
+                {
+
+                    PgpLiteralData ld = (PgpLiteralData)message;
+                    Stream fOut = File.Create(pathToSaveFile);
+                    Stream unc = ld.GetInputStream();
+                    Streams.PipeAll(unc, fOut);
+                    fOut.Close();
+
+                }
+
+                else if (message is PgpOnePassSignatureList)
+                {
+                    throw new PgpException("encrypted message contains a signed message - not literal data.");
+                }
+
+                else
+                {
+                    throw new PgpException("message is not a simple encrypted file - type unknown.");
+                }
+
+                if (pbe.IsIntegrityProtected())
+                {
+
+                    if (!pbe.Verify())
+                    {
+                        throw new PgpException("message failed integrity check");
+                    }
+                }
+            
+        }
+
         public static void DecryptFile(Stream inputStream, Stream keyIn, char[] passwd, string pathToSaveFile)
         {
 
@@ -1147,18 +1274,18 @@ namespace PGPHelper
 
                     if (!pbe.Verify())
                     {
-                        Console.WriteLine("message failed integrity check");
+                        throw new PgpException("message failed integrity check");
                     }
 
                     else
                     {
-                        Console.WriteLine("message integrity check passed");
+                        throw new PgpException("message integrity check passed");
                     }
                 }
 
                 else
                 {
-                    Console.WriteLine("no message integrity check");
+                    throw new PgpException("no message integrity check");
                 }
             }
 
@@ -1175,18 +1302,41 @@ namespace PGPHelper
             }
         }
 
-        public static void EncryptFile(Stream outputStream, string fileName, PgpPublicKey encKey, bool armor, bool withIntegrityCheck)
+        public static void EncryptFile(Stream outputStream, string fileName, PgpPublicKey[] encKeys, bool armor, bool withIntegrityCheck, string compressionName)
         {
             if (armor)
             {
                 outputStream = new ArmoredOutputStream(outputStream);
             }
 
+            CompressionAlgorithmTag comptype;
+
+            if (string.Equals(compressionName, "Uncompressed", StringComparison.CurrentCultureIgnoreCase))
+            {
+                comptype = CompressionAlgorithmTag.Uncompressed;
+            }
+            else if (string.Equals(compressionName, "Zip", StringComparison.CurrentCultureIgnoreCase))
+            {
+                comptype = CompressionAlgorithmTag.Zip;
+            }
+            else if (string.Equals(compressionName, "Zlib", StringComparison.CurrentCultureIgnoreCase))
+            {
+                comptype = CompressionAlgorithmTag.ZLib;
+            }
+            else if (string.Equals(compressionName, "BZip2", StringComparison.CurrentCultureIgnoreCase))
+            {
+                comptype = CompressionAlgorithmTag.BZip2;
+            }
+            else
+            {
+                comptype = CompressionAlgorithmTag.Zip;
+            }
+
             try
             {
                 MemoryStream bOut = new MemoryStream();
                 PgpCompressedDataGenerator comData = new PgpCompressedDataGenerator(
-                CompressionAlgorithmTag.Zip);
+                comptype);
                 PgpUtilities.WriteFileToLiteralData(
                 comData.Open(bOut),
                 PgpLiteralData.Binary,
@@ -1194,7 +1344,10 @@ namespace PGPHelper
                 comData.Close();
                 PgpEncryptedDataGenerator cPk = new PgpEncryptedDataGenerator(
                 SymmetricKeyAlgorithmTag.Cast5, withIntegrityCheck, new SecureRandom());
-                cPk.AddMethod(encKey);
+                foreach(PgpPublicKey encKey in encKeys)
+                {
+                    cPk.AddMethod(encKey);
+                }
                 byte[] bytes = bOut.ToArray();
                 Stream cOut = cPk.Open(outputStream, bytes.Length);
                 cOut.Write(bytes, 0, bytes.Length);
@@ -1219,15 +1372,15 @@ namespace PGPHelper
         }
 
 
-        public static void Encrypt(string filePath, string OutputFilePath, string publicKeyFile)
-        {
-            Stream keyIn, fos;
-            keyIn = File.OpenRead(publicKeyFile);
-            fos = File.Create(OutputFilePath);
-            EncryptFile(fos, filePath, ReadPublicKey(keyIn), true, true);
-            keyIn.Close();
-            fos.Close();
-        }
+        //public static void Encrypt(string filePath, string OutputFilePath, string publicKeyFile)
+        //{
+        //    Stream keyIn, fos;
+        //    keyIn = File.OpenRead(publicKeyFile);
+        //    fos = File.Create(OutputFilePath);
+        //    EncryptFile(fos, filePath, ReadPublicKey(keyIn), true, true);
+        //    keyIn.Close();
+        //    fos.Close();
+        //}
 
 
         public static void Decrypt(string filePath, string privateKeyFile, string passPhrase, string pathToSaveFile)

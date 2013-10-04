@@ -1,6 +1,4 @@
-﻿[Reflection.Assembly]::LoadFile("C:\Users\Carlos\Downloads\bccrypto-net-1.7-bin-ext\BouncyCastle.CryptoExt.dll")
-
-
+﻿
 <#
 .Synopsis
    Get a specified or all private keys from a OpenPGP key ring file.
@@ -40,6 +38,24 @@ KeyId                  : -6973998088605263141
 PublicKey              : Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKey
 UserIds                : {Charlie Miller <cmiller@nsa.gov>}
 UserAttributes         : {}
+
+.EXAMPLE
+    Get-PGPSecretKey -KeyRing $env:APPDATA\gnupg\secring.gpg -UserId "Carlos" -MatchPartial
+
+
+Id                     : DCC9422A3F0DB692
+PreferedSymmetric      : {}
+PreferedHash           : {}
+PreferedCompression    : {}
+IsSigningKey           : True
+IsMasterKey            : True
+KeyEncryptionAlgorithm : Cast5
+KeyId                  : -2537424165832640878
+PublicKey              : Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKey
+UserIds                : {Carlos Perez <dark@tacticalinfosec.com>}
+UserAttributes         : {}
+
+
 #>
 function Get-PGPSecretKey
 {
@@ -56,7 +72,25 @@ function Get-PGPSecretKey
         [Parameter(Mandatory=$false,
         ValueFromPipelineByPropertyName=$true,
         Position=2)]
-        $Id
+        [Parameter(ParameterSetName='Id')]
+        $Id,
+
+        [Parameter(Mandatory=$false,
+        ValueFromPipelineByPropertyName=$true,
+        Position=2)]
+        [Parameter(ParameterSetName='UserId')]
+        $UserId,
+
+        [Parameter(Mandatory=$false,
+        ValueFromPipelineByPropertyName=$true)]
+        [Parameter(ParameterSetName='UserId')]
+        [switch]$MatchPartial,
+
+        [Parameter(Mandatory=$false,
+        ValueFromPipelineByPropertyName=$true)]
+        [Parameter(ParameterSetName='UserId')]
+        [switch]$IgnoreCase
+
     )
 
     Begin
@@ -97,7 +131,7 @@ function Get-PGPSecretKey
     }
     Process
     {
-        [system.io.stream]$stream = [system.io.File]::OpenRead($KeyRing)
+        [system.io.stream]$stream = [system.io.File]::OpenRead((Resolve-Path $KeyRing).Path)
         # Decode key ring
         $instream = [Org.BouncyCastle.Bcpg.OpenPgp.PgpUtilities]::GetDecoderStream($stream)
         try
@@ -107,82 +141,81 @@ function Get-PGPSecretKey
             {
                 throw "$($KeyRing) is not a valid key ring."
             }
-            if ($Id)
+
+            switch ($PsCmdlet.ParameterSetName) 
             {
-                $idlongformat = ($Id | foreach {[Convert]::ToInt64($_,16)})  -join ""
-                $kp = $PrivKeyBundle.GetSecretKey($idlongformat)
-                $sig = $kp.PublicKey.GetSignatures()                                                                                                                                                                                                      
-                $sigenum = $sig.GetEnumerator()                                                                                                      
-                [void]$sigenum.MoveNext()
-                $PreferedHashAlgos        = @()
-                $PreferedSymAlgos         = @()
-                $PreferedCompressionAlgos = @()
-                if ($sig1.Current.HasSubpackets)
-                {                                                                                                                                                                                                                                                                                                  
-                    $hashsub = $sigenum.Current.GetHashedSubPackets()                                                                                                                                                                                          
-                    $compalgos = $hashsub.GetPreferredCompressionAlgorithms()
-                    foreach ($calgo in $compalgos)
-                    {
-                        $PreferedCompressionAlgos += $compressionalgos[$calgo]
-                    }                                                                            
-                    $symalgost = $hashsub.GetPreferredSymmetricAlgorithms()
-                    foreach ($salgo in $symalgost)
-                    {
-                        $PreferedSymAlgos += $symetricalgos[$salgo]
+                'Id' {
+                    $idlongformat = ($Id | foreach {[Convert]::ToInt64($_,16)})  -join ""
+                    $kp = $PrivKeyBundle.GetSecretKey($idlongformat)
+                    $sig = $kp.PublicKey.GetSignatures()                                                                                                                                                                                                      
+                    $sigenum = $sig.GetEnumerator()                                                                                                      
+                    [void]$sigenum.MoveNext()
+                    $PreferedHashAlgos        = @()
+                    $PreferedSymAlgos         = @()
+                    $PreferedCompressionAlgos = @()
+                    if ($sig1.Current.HasSubpackets)
+                    {                                                                                                                                                                                                                                                                                                  
+                        $hashsub = $sigenum.Current.GetHashedSubPackets()                                                                                                                                                                                          
+                        $compalgos = $hashsub.GetPreferredCompressionAlgorithms()
+                        foreach ($calgo in $compalgos)
+                        {
+                            $PreferedCompressionAlgos += $compressionalgos[$calgo]
+                        }                                                                            
+                        $symalgost = $hashsub.GetPreferredSymmetricAlgorithms()
+                        foreach ($salgo in $symalgost)
+                        {
+                            $PreferedSymAlgos += $symetricalgos[$salgo]
+                        }
+                        $hashgost = $hashsub.GetPreferredHashAlgorithms()
+                        foreach ($halgo in $hashgost)
+                        {
+                            $PreferedHashAlgos += $hashalgos[$halgo]
+                        }
                     }
-                    $hashgost = $hashsub.GetPreferredHashAlgorithms()
-                    foreach ($halgo in $hashgost)
-                    {
-                        $PreferedHashAlgos += $hashalgos[$halgo]
-                    }
-                }
-                if ($kp)
-                {
-                    # Add some additional properties to the object
-                    Add-Member -InputObject $kp -MemberType NoteProperty -Name "Id" -Value (($kp.KeyId  |  foreach { $_.ToString("X2") }) -join "")
-                    #Add-Member -InputObject $kp -MemberType NoteProperty -Name "UserIds" -Value ($kp.PublicKey.GetUserIds())
-                    Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedSymmetric" -Value $PreferedSymAlgos
-                    Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedHash" -Value $PreferedHashAlgos
-                    Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedCompression" -Value $PreferedCompressionAlgos
-                    $kp
-                }
-            }
-            else
-            {
-                # Get all keyrings from the file
-                foreach ($keyring in $PrivKeyBundle.GetKeyRings())
-                {
-                    # Get only the public keys from the key ring 
-                    $kp = $keyring.GetSecretKey()
                     if ($kp)
                     {
-                        if ($kp.IsSigningKey)
-                        {
-                            $sig = $kp.PublicKey.GetSignatures()                                                                                                                                                                                                      
-                            $sigenum = $sig.GetEnumerator()                                                                                                      
-                            [void]$sigenum.MoveNext()
-                            $PreferedHashAlgos        = @()
-                            $PreferedSymAlgos         = @()
-                            $PreferedCompressionAlgos = @()
-                            if ($sig1.Current.HasSubpackets)
-                            {                                                                                                                                                                                                                                                                                                  
-                                $hashsub = $sigenum.Current.GetHashedSubPackets()                                                                                                                                                                                          
-                                $compalgos = $hashsub.GetPreferredCompressionAlgorithms()
-                                foreach ($calgo in $compalgos)
-                                {
-                                    $PreferedCompressionAlgos += $compressionalgos[$calgo]
-                                }                                                                            
-                                $symalgost = $hashsub.GetPreferredSymmetricAlgorithms()
-                                foreach ($salgo in $symalgost)
-                                {
-                                    $PreferedSymAlgos += $symetricalgos[$salgo]
-                                }
-                                $hashgost = $hashsub.GetPreferredHashAlgorithms()
-                                foreach ($halgo in $hashgost)
-                                {
-                                    $PreferedHashAlgos += $hashalgos[$halgo]
-                                }
+                        # Add some additional properties to the object
+                        Add-Member -InputObject $kp -MemberType NoteProperty -Name "Id" -Value (($kp.KeyId  |  foreach { $_.ToString("X2") }) -join "")
+                        #Add-Member -InputObject $kp -MemberType NoteProperty -Name "UserIds" -Value ($kp.PublicKey.GetUserIds())
+                        Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedSymmetric" -Value $PreferedSymAlgos
+                        Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedHash" -Value $PreferedHashAlgos
+                        Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedCompression" -Value $PreferedCompressionAlgos
+                        $kp
+                    }
+                }
+                
+                'UserId' {
+                    $keyring = $PrivKeyBundle.GetKeyRings($UserId,$MatchPartial,$MatchCase)
+                    foreach($ring in $KeyRing)
+                    {
+                        $kp = $ring.GetSecretKey()
+                        $sig = $kp.PublicKey.GetSignatures()                                                                                                                                                                                                      
+                        $sigenum = $sig.GetEnumerator()                                                                                                      
+                        [void]$sigenum.MoveNext()
+                        $PreferedHashAlgos        = @()
+                        $PreferedSymAlgos         = @()
+                        $PreferedCompressionAlgos = @()
+                        if ($sig1.Current.HasSubpackets)
+                        {                                                                                                                                                                                                                                                                                                  
+                            $hashsub = $sigenum.Current.GetHashedSubPackets()                                                                                                                                                                                          
+                            $compalgos = $hashsub.GetPreferredCompressionAlgorithms()
+                            foreach ($calgo in $compalgos)
+                            {
+                                $PreferedCompressionAlgos += $compressionalgos[$calgo]
+                            }                                                                            
+                            $symalgost = $hashsub.GetPreferredSymmetricAlgorithms()
+                            foreach ($salgo in $symalgost)
+                            {
+                                $PreferedSymAlgos += $symetricalgos[$salgo]
                             }
+                            $hashgost = $hashsub.GetPreferredHashAlgorithms()
+                            foreach ($halgo in $hashgost)
+                            {
+                                $PreferedHashAlgos += $hashalgos[$halgo]
+                            }
+                        }
+                        if ($kp)
+                        {
                             # Add some additional properties to the object
                             Add-Member -InputObject $kp -MemberType NoteProperty -Name "Id" -Value (($kp.KeyId  |  foreach { $_.ToString("X2") }) -join "")
                             #Add-Member -InputObject $kp -MemberType NoteProperty -Name "UserIds" -Value ($kp.PublicKey.GetUserIds())
@@ -191,12 +224,59 @@ function Get-PGPSecretKey
                             Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedCompression" -Value $PreferedCompressionAlgos
                             $kp
                         }
-                        else
-                        {
-                            $kp
-                        }
                     }
                 }
+
+                default {
+                    # Get all keyrings from the file
+                    foreach ($keyring in $PrivKeyBundle.GetKeyRings())
+                    {
+                        # Get only the public keys from the key ring 
+                        $kp = $keyring.GetSecretKey()
+                        if ($kp)
+                        {
+                            if ($kp.IsSigningKey)
+                            {
+                                $sig = $kp.PublicKey.GetSignatures()                                                                                                                                                                                                      
+                                $sigenum = $sig.GetEnumerator()                                                                                                      
+                                [void]$sigenum.MoveNext()
+                                $PreferedHashAlgos        = @()
+                                $PreferedSymAlgos         = @()
+                                $PreferedCompressionAlgos = @()
+                                if ($sig1.Current.HasSubpackets)
+                                {                                                                                                                                                                                                                                                                                                  
+                                    $hashsub = $sigenum.Current.GetHashedSubPackets()                                                                                                                                                                                          
+                                    $compalgos = $hashsub.GetPreferredCompressionAlgorithms()
+                                    foreach ($calgo in $compalgos)
+                                    {
+                                        $PreferedCompressionAlgos += $compressionalgos[$calgo]
+                                    }                                                                            
+                                    $symalgost = $hashsub.GetPreferredSymmetricAlgorithms()
+                                    foreach ($salgo in $symalgost)
+                                    {
+                                        $PreferedSymAlgos += $symetricalgos[$salgo]
+                                    }
+                                    $hashgost = $hashsub.GetPreferredHashAlgorithms()
+                                    foreach ($halgo in $hashgost)
+                                    {
+                                        $PreferedHashAlgos += $hashalgos[$halgo]
+                                    }
+                                }
+                                # Add some additional properties to the object
+                                Add-Member -InputObject $kp -MemberType NoteProperty -Name "Id" -Value (($kp.KeyId  |  foreach { $_.ToString("X2") }) -join "")
+                                #Add-Member -InputObject $kp -MemberType NoteProperty -Name "UserIds" -Value ($kp.PublicKey.GetUserIds())
+                                Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedSymmetric" -Value $PreferedSymAlgos
+                                Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedHash" -Value $PreferedHashAlgos
+                                Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedCompression" -Value $PreferedCompressionAlgos
+                                $kp
+                            }
+                            else
+                            {
+                                $kp
+                            }
+                        }
+                    }
+            }
             }
         }
         catch
@@ -243,6 +323,35 @@ IsEncryptionKey : False
 IsMasterKey     : True
 Algorithm       : Dsa
 BitStrength     : 1024
+
+.EXAMPLE
+    Get-PGPPublicKey -KeyRing $env:APPDATA\gnupg\pubring.gpg -UserId "Carlos","Marta" -MatchPartial
+
+
+Id              : DCC9422A3F0DB692
+UserIds         : {Carlos Perez <dark@tacticalinfosec.com>}
+Fingerprint     : 1BEB0D3D94F26535F2DE4688DCC9422A3F0DB692
+Version         : 4
+CreationTime    : 10/3/2013 6:14:55 PM
+ValidDays       : 0
+KeyId           : -2537424165832640878
+IsEncryptionKey : True
+IsMasterKey     : True
+Algorithm       : RsaGeneral
+BitStrength     : 4096
+
+Id              : 1F09E81ACCFF0A6A
+UserIds         : {Marta Perez <mperez@infosectactico.com>}
+Fingerprint     : 4D3EF95CFA1CF2B9846E87601F09E81ACCFF0A6A
+Version         : 4
+CreationTime    : 10/3/2013 7:40:48 PM
+ValidDays       : 0
+KeyId           : 2236573891772222058
+IsEncryptionKey : True
+IsMasterKey     : True
+Algorithm       : RsaGeneral
+BitStrength     : 2048
+
 #>
 function Get-PGPPublicKey
 {
@@ -259,7 +368,24 @@ function Get-PGPPublicKey
         [Parameter(Mandatory=$false,
         ValueFromPipelineByPropertyName=$true,
         Position=2)]
-        $Id
+        [Parameter(ParameterSetName='Id')]
+        $Id,
+
+        [Parameter(Mandatory=$false,
+        ValueFromPipelineByPropertyName=$true,
+        Position=2)]
+        [Parameter(ParameterSetName='UserId')]
+        [string[]]$UserId,
+
+        [Parameter(Mandatory=$false,
+        ValueFromPipelineByPropertyName=$true)]
+        [Parameter(ParameterSetName='UserId')]
+        [switch]$MatchPartial,
+
+        [Parameter(Mandatory=$false,
+        ValueFromPipelineByPropertyName=$true)]
+        [Parameter(ParameterSetName='UserId')]
+        [switch]$IgnoreCase
     )
 
     Begin
@@ -277,26 +403,13 @@ function Get-PGPPublicKey
             {
                 throw "$($KeyRing) is not a valid key ring."
             }
-            if ($Id)
+            switch ($PsCmdlet.ParameterSetName) 
             {
-                $idlongformat = ($Id | foreach {[Convert]::ToInt64($_,16)})  -join ""
-                $kp = $PubKeyBundle.GetPublicKey($idlongformat)
-                if ($kp)
+
+                'Id'
                 {
-                    # Add some additional properties to the object
-                    Add-Member -InputObject $kp -MemberType NoteProperty -Name "Id" -Value (($kp.KeyId  |  foreach { $_.ToString("X2") }) -join "")
-                    Add-Member -InputObject $kp -MemberType NoteProperty -Name "UserIds" -Value ($kp.GetUserIds())
-                    Add-Member -InputObject $kp -MemberType NoteProperty -Name "Fingerprint" -Value (($kp.GetFingerprint() |  foreach { $_.ToString("X2") }) -join "")
-                    $kp
-                }
-            }
-            else
-            {
-                # Get all keyrings from the file
-                foreach ($keyring in $PubKeyBundle.GetKeyRings())
-                {
-                    # Get only the public keys from the key ring 
-                    $kp = $keyring.GetPublicKey()
+                    $idlongformat = ($Id | foreach {[Convert]::ToInt64($_,16)})  -join ""
+                    $kp = $PubKeyBundle.GetPublicKey($idlongformat)
                     if ($kp)
                     {
                         # Add some additional properties to the object
@@ -304,6 +417,44 @@ function Get-PGPPublicKey
                         Add-Member -InputObject $kp -MemberType NoteProperty -Name "UserIds" -Value ($kp.GetUserIds())
                         Add-Member -InputObject $kp -MemberType NoteProperty -Name "Fingerprint" -Value (($kp.GetFingerprint() |  foreach { $_.ToString("X2") }) -join "")
                         $kp
+                    }
+                }
+
+                'UserId'
+                {
+                    foreach($uid in $UserId)
+                    {
+                        $keyring = $PubKeyBundle.GetKeyRings($uid, $MatchPartial,$MatchCase)
+                        foreach($key in $KeyRing)
+                        {
+                            $kp = $key.GetPublicKey()
+                            if ($kp)
+                            {
+                                # Add some additional properties to the object
+                                Add-Member -InputObject $kp -MemberType NoteProperty -Name "Id" -Value (($kp.KeyId  |  foreach { $_.ToString("X2") }) -join "")
+                                Add-Member -InputObject $kp -MemberType NoteProperty -Name "UserIds" -Value ($kp.GetUserIds())
+                                Add-Member -InputObject $kp -MemberType NoteProperty -Name "Fingerprint" -Value (($kp.GetFingerprint() |  foreach { $_.ToString("X2") }) -join "")
+                                $kp
+                            }
+                        }
+                    }
+                }
+
+                default
+                {
+                    # Get all keyrings from the file
+                    foreach ($keyring in $PubKeyBundle.GetKeyRings())
+                    {
+                        # Get only the public keys from the key ring 
+                        $kp = $keyring.GetPublicKey()
+                        if ($kp)
+                        {
+                            # Add some additional properties to the object
+                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "Id" -Value (($kp.KeyId  |  foreach { $_.ToString("X2") }) -join "")
+                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "UserIds" -Value ($kp.GetUserIds())
+                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "Fingerprint" -Value (($kp.GetFingerprint() |  foreach { $_.ToString("X2") }) -join "")
+                            $kp
+                        }
                     }
                 }
             }

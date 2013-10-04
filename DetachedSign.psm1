@@ -1,16 +1,12 @@
-﻿[void][Reflection.Assembly]::LoadFile("C:\Users\Carlos\Documents\Posh-OpenPGP\Source\PGPHelper\PGPHelper\bin\Debug\PGPHelper.dll")
-[void][Reflection.Assembly]::LoadFile("C:\Users\Carlos\Documents\Posh-OpenPGP\Source\PGPHelper\PGPHelper\bin\Debug\BouncyCastle.CryptoExt.dll")
-
-
+﻿
 <#
 .Synopsis
-   Short description
+   Creates a OpenPGP Detached signature for a file.
 .DESCRIPTION
-   Long description
+   Creates a OpenPGP Detached signature for a file given a secret key and its paraphrase.
 .EXAMPLE
-   Example of how to use this cmdlet
-.EXAMPLE
-   Another example of how to use this cmdlet
+   $seckey = Get-PGPSecretKey -keyring $env:APPDATA\gnupg\secring.gpg -UserId "Carlos" -MatchPartial
+   PS C:\ > New-PGPDetachedSignature -SecretKey $seckey -File C:\evidence.txt -PassPhrase (Read-Host -AsSecureString) -Armour -OutFile C:\evidence.sig -Algorithm SHA1
 #>
 function New-PGPDetachedSignature
 {
@@ -71,13 +67,20 @@ function New-PGPDetachedSignature
 
 <#
 .Synopsis
-   Short description
+   Confirms the integrity of a file using an OpenPG Detached Signature.
 .DESCRIPTION
-   Long description
+   Confirms the integrity of a file using an OpenPG Detached Signature.
 .EXAMPLE
-   Example of how to use this cmdlet
-.EXAMPLE
-   Another example of how to use this cmdlet
+   Confirm-PGPDetachedSignature -File C:\evidence.txt -Signature C:\evidence.sig -KeyRing $env:APPDATA\gnupg\pubring.gpg
+
+
+Valid         : True
+Created       : 10/4/2013 12:26:28 AM
+KeyID         : DCC9422A3F0DB692
+HashAlgorithm : Sha512
+Version       : 4
+Signature     : Org.BouncyCastle.Bcpg.OpenPgp.PgpSignature
+
 #>
 function Confirm-PGPDetachedSignature
 {
@@ -112,7 +115,3 @@ function Confirm-PGPDetachedSignature
     {
     }
 }
-
-$secretkey = [PGPHelper.KeyUtilities]::ReadSecretKey("C:\BF6A6538A15ACC5E_sec.pgp")
-New-PGPDetachedSignature -File C:\Users\Carlos\Desktop\jre1.7.0_21-c.msi -SecretKey $secretkey -PassPhrase (Read-Host -AsSecureString) -OutFile C:\Users\Carlos\Desktop\jre1.7.0_21-c.sig 
-Confirm-PGPDetachedSignature -File C:\Users\Carlos\Desktop\jre1.7.0_21-c.msi -Signature C:\Users\Carlos\Desktop\jre1.7.0_21-c.sig -KeyRing C:\Users\Carlos\AppData\Roaming\gnupg\pubring.gpg
