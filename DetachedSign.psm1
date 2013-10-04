@@ -5,7 +5,7 @@
 .DESCRIPTION
    Creates a OpenPGP Detached signature for a file given a secret key and its paraphrase.
 .EXAMPLE
-   $seckey = Get-PGPSecretKey -keyring $env:APPDATA\gnupg\secring.gpg -UserId "Carlos" -MatchPartial
+   $seckey = Get-PGPSecretKey -keyring $env:APPDATA\gnupg\secring.gpg -UserId "Carlos"
    PS C:\ > New-PGPDetachedSignature -SecretKey $seckey -File C:\evidence.txt -PassPhrase (Read-Host -AsSecureString) -Armour -OutFile C:\evidence.sig -Algorithm SHA1
 #>
 function New-PGPDetachedSignature
@@ -36,7 +36,7 @@ function New-PGPDetachedSignature
         [Parameter(Mandatory=$false,
         ValueFromPipelineByPropertyName=$true)]
         [ValidateSet('SHA1', "SHA256",'SHA384','SHA512','RIPEMD160')]
-        [string]$Algorithm = 'SHA512',
+        [string]$HashAlgorithm = 'SHA512',
 
         [Parameter(Mandatory=$false,
         ValueFromPipelineByPropertyName=$true)]
@@ -48,6 +48,18 @@ function New-PGPDetachedSignature
     }
     Process
     {   
+        if ($HashAlgorithm)
+        {
+            Write-Verbose "Using hash algorithm $($HashAlgorithm)"
+        }
+        else
+        {
+            Write-Verbose "Using prefered hash algorithm $($SecretKey.PreferedHash[0])"
+            $HashAlgorithm = $SecretKey.PreferedHash[0]
+        }
+
+        Write-Verbose "Creating detached signature for $($File) as $($OutFile)"
+
         $instream = ($ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($File))
         $outstream = [System.IO.File]::Create(($ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutFile)))
         [PGPHelper.DetachedSignedFileProcessor]::CreateSignature($instream,
@@ -55,9 +67,10 @@ function New-PGPDetachedSignature
             $outstream,
             ([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($PassPhrase))),  
             $Armour,
-            $Algorithm
+            $HashAlgorithm
         )
         $outstream.close()
+        Write-Verbose "Detached signatured saved as $($OutFile)"
 
     }
     End

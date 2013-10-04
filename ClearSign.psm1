@@ -8,7 +8,7 @@
 .EXAMPLE
    New-PGPClearSignature -SecretKey $seckey -File C:\evidence.txt -PassPhrase (Read-Host -AsSecureString) -OutFile C:\evidence.asc
 .EXAMPLE
-   $seckey = Get-PGPSecretKey -KeyRing $env:APPDATA\gnupg\secring.gpg -UserId "darkoperator" -MatchPartial
+   $seckey = Get-PGPSecretKey -KeyRing $env:APPDATA\gnupg\secring.gpg -UserId "darkoperator"
 PS C:\> $message = New-PGPClearSignature -SecretKey $seckey -Text "This is my ubber secret message`n" -PassPhrase (Read-Host -AsSecureString)
 PS C:\> $creds = Get-Credential carlos_perez@darkoperator.com
 PS C:\> $param = @{
