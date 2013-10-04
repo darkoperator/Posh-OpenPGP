@@ -28,7 +28,7 @@ Sends a Signed OpenPGP Email
 #>
 function New-PGPClearSignature
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = 'File')]
     Param
     (
         # Param1 help description
@@ -59,7 +59,7 @@ function New-PGPClearSignature
         [Parameter(Mandatory=$false,
         ValueFromPipelineByPropertyName=$true)]
         [ValidateSet('SHA1', "SHA256",'SHA384','SHA512','RIPEMD160')]
-        [string]$Algorithm = 'SHA1'
+        [string]$HashAlgorithm
     )
 
     Begin
@@ -80,6 +80,7 @@ function New-PGPClearSignature
         switch ($PsCmdlet.ParameterSetName) 
         {
             'File'{
+                Write-Verbose "Signing file $($File)"
                 $filecontent = Get-Content $file -Raw 
                 $enc = [system.Text.Encoding]::ASCII
                 $data1 = $enc.GetBytes($filecontent)
@@ -88,6 +89,7 @@ function New-PGPClearSignature
                 $instream.Position = 0
             }
             'Text' {
+                Write-Verbose "Signing provided string"
                 $enc = [system.Text.Encoding]::ASCII
                 $data1 = $enc.GetBytes($Text)
                 $instream = New-Object System.IO.MemoryStream
@@ -97,18 +99,30 @@ function New-PGPClearSignature
 
         }
         
+        if ($HashAlgorithm)
+        {
+            Write-Verbose "Using hash algorithm $($HashAlgorithm)"
+        }
+        else
+        {
+            Write-Verbose "Using prefered hash algorithm $($SecretKey.PreferedHash[0])"
+            $HashAlgorithm = $SecretKey.PreferedHash[0]
+        }
+
         [PGPHelper.ClearSignedFileProcessor]::SignFile($instream, 
         $SecretKey, 
         $outstream,
         ([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($PassPhrase))),  
-        $Algorithm)
-        
+        $HashAlgorithm)
+
         if ($OutFile)
         {
+            Write-Verbose "Signed content created at $($OutFile)"
             $outstream.Close()
         }
         else
         {
+            Write-Verbose "Output of signed content sent to Console"
             [void]$outstream.Seek(0,"Begin")
             $readStream = New-Object System.IO.StreamReader $outstream
             while ($readStream.Peek() -ne -1)
@@ -141,8 +155,7 @@ Signature     : Org.BouncyCastle.Bcpg.OpenPgp.PgpSignature
 #>
 function Confirm-PGPClearSignature
 {
-    [CmdletBinding()]
-    [OutputType([int])]
+    [CmdletBinding(DefaultParameterSetName='File')]
     Param
     (
         [Parameter(Mandatory=$true,

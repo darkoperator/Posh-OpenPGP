@@ -30,7 +30,7 @@ function Protect-PGpEncryptedFile
         [Parameter(Mandatory=$false,
         ValueFromPipelineByPropertyName=$true)]
         [ValidateSet('Uncompressed', "Zip",'Zlib','BZip2')]
-        [string]$Compression = 'Zip',
+        [string]$Compression,
 
         [Parameter(Mandatory=$false,
         ValueFromPipelineByPropertyName=$true)]
@@ -38,7 +38,21 @@ function Protect-PGpEncryptedFile
 
         [Parameter(Mandatory=$false,
         ValueFromPipelineByPropertyName=$true)]
-        [switch]$IntegrityCheck
+        [switch]$IntegrityCheck,
+
+        [Parameter(Mandatory=$false,
+        ValueFromPipelineByPropertyName=$true)]
+        [ValidateSet("IDEA",
+            "3DES",
+            "CAST5",
+            "BlowFish",
+            "TowFish",
+            "DES",
+            "AES128",
+            "AES196",
+            "AES256",
+            "SAFER")]
+        [string]$SymmetricAlgorithm
     )
 
     Begin
@@ -47,8 +61,47 @@ function Protect-PGpEncryptedFile
     Process
     {
         $outstream = [System.IO.File]::Create(($ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutFile)))
-        [PGPHelper.PGPEncryptDecrypt]::EncryptFile($outstream, (Resolve-Path $file).Path, $PublicKey, $Armour, $IntegrityCheck, $Compression) 
+        if ($Compression)
+        {
+            Write-Verbose "Using selected compression algorithm $($Compression)."
+
+        }
+        else
+        {
+            if ($PublicKey.length -eq 1)
+            {
+                Write-Verbose "Using prefered compression algorithm $($PublicKey.PreferedCompression[0])."
+                $compression = $PublicKey.PreferedCompression[0]
+            }
+            else
+            {
+                Write-Verbose "Using prefered compression algorithm $($PublicKey[0].PreferedCompression[0])."
+                $compression = $PublicKey[0].PreferedCompression[0]
+            }
+        }
+
+        if ($SymmetricAlgorithm)
+        {
+            Write-Verbose "Using selected symmetric algorithm $($SymmetricAlgorithm)."
+
+        }
+        else
+        {
+            if ($PublicKey.length -eq 1)
+            {
+                Write-Verbose "Using prefered compression algorithm $($PublicKey.PreferedSymmetric[0])."
+                $SymmetricAlgorithm = $PublicKey.PreferedSymmetric[0]
+            }
+            else
+            {
+                Write-Verbose "Using prefered compression algorithm $($PublicKey[0].PreferedSymmetric[0])."
+                $SymmetricAlgorithm = $PublicKey[0].PreferedSymmetric[0]
+            }
+        }
+        Write-Verbose "Encrypting file $($File)"
+        [PGPHelper.PGPEncryptDecrypt]::EncryptFile($outstream, (Resolve-Path $file).Path, $PublicKey, $Armour, $IntegrityCheck, $Compression, $SymmetricAlgorithm) 
         $outstream.close()
+        Write-Verbose "File has been encrypted as $($OutFile)"
     }
     End
     {
@@ -70,7 +123,6 @@ function Protect-PGpEncryptedFile
 function Unprotect-PGPEncryptedFile
 {
     [CmdletBinding()]
-    [OutputType([int])]
     Param
     (
         [Parameter(Mandatory=$true,

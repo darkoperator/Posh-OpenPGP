@@ -316,28 +316,88 @@ namespace PGPHelper
             return Streams.ReadAll(unc);
         }
 
-        /**
-        * Simple PGP encryptor between byte[].
-        *
-        * @param clearData  The test to be encrypted
-        * @param passPhrase The pass phrase (key).  This method assumes that the
-        *                   key is a simple pass phrase, and does not yet support
-        *                   RSA or more sophisiticated keying.
-        * @param fileName   File name. This is used in the Literal Data Packet (tag 11)
-        *                   which is really inly important if the data is to be
-        *                   related to a file to be recovered later.  Because this
-        *                   routine does not know the source of the information, the
-        *                   caller can set something here for file name use that
-        *                   will be carried.  If this routine is being used to
-        *                   encrypt SOAP MIME bodies, for example, use the file name from the
-        *                   MIME type, if applicable. Or anything else appropriate.
-        *
-        * @param armor
-        *
-        * @return encrypted data.
-        * @exception IOException
-        * @exception PgpException
-        */
+        public static void Encrypt(
+            Stream inStream, 
+            Stream outStream,  
+            string algorithm, 
+            char[] passPhrase,
+            bool armor,
+            string compressionName)
+        {
+            // Select the specified compression
+            CompressionAlgorithmTag comptype;
+
+            if (string.Equals(compressionName, "Uncompressed", StringComparison.CurrentCultureIgnoreCase))
+            {
+                comptype = CompressionAlgorithmTag.Uncompressed;
+            }
+            else if (string.Equals(compressionName, "Zip", StringComparison.CurrentCultureIgnoreCase))
+            {
+                comptype = CompressionAlgorithmTag.Zip;
+            }
+            else if (string.Equals(compressionName, "Zlib", StringComparison.CurrentCultureIgnoreCase))
+            {
+                comptype = CompressionAlgorithmTag.ZLib;
+            }
+            else if (string.Equals(compressionName, "BZip2", StringComparison.CurrentCultureIgnoreCase))
+            {
+                comptype = CompressionAlgorithmTag.BZip2;
+            }
+            else
+            {
+                comptype = CompressionAlgorithmTag.Zip;
+            }
+
+            SymmetricKeyAlgorithmTag symtype;
+
+            if (string.Equals(algorithm, "Aes256", StringComparison.CurrentCultureIgnoreCase))
+            {
+                symtype = SymmetricKeyAlgorithmTag.Aes256;
+            }
+            else if (string.Equals(algorithm, "Aes192", StringComparison.CurrentCultureIgnoreCase))
+            {
+                symtype = SymmetricKeyAlgorithmTag.Aes192;
+            }
+            else if (string.Equals(algorithm, "Aes128", StringComparison.CurrentCultureIgnoreCase))
+            {
+                symtype = SymmetricKeyAlgorithmTag.Aes128;
+            }
+            else if (string.Equals(algorithm, "Blowfish", StringComparison.CurrentCultureIgnoreCase))
+            {
+                symtype = SymmetricKeyAlgorithmTag.Blowfish;
+            }
+            else if (string.Equals(algorithm, "Twofish", StringComparison.CurrentCultureIgnoreCase))
+            {
+                symtype = SymmetricKeyAlgorithmTag.Twofish;
+            }
+            else if (string.Equals(algorithm, "Cast5", StringComparison.CurrentCultureIgnoreCase))
+            {
+                symtype = SymmetricKeyAlgorithmTag.Cast5;
+            }
+            else if (string.Equals(algorithm, "Idea", StringComparison.CurrentCultureIgnoreCase))
+            {
+                symtype = SymmetricKeyAlgorithmTag.Idea;
+            }
+            else
+            {
+                symtype = SymmetricKeyAlgorithmTag.Twofish;
+            }
+
+            // Create Encryption Generator
+            PgpEncryptedDataGenerator encGen = new PgpEncryptedDataGenerator(symtype, new SecureRandom());
+            encGen.AddMethod(passPhrase);
+
+            // Initialize compressor
+            PgpCompressedDataGenerator compressedDataGenerator = new PgpCompressedDataGenerator(comptype);
+            Stream compressedOut = compressedDataGenerator.Open(inStream);
+
+            Stream encOut = encGen.Open(outStream, compressedOut.Length);
+
+            //encOut.Write(compressedOut, 0, compressedOut.Length);
+            encOut.Close();
+        }
+
+
         public static byte[] Encrypt(
             byte[] clearData,
             char[] passPhrase,
@@ -1099,7 +1159,7 @@ namespace PGPHelper
         }
 
 
-        public static void EncryptFile(Stream outputStream, string fileName, PgpPublicKey[] encKeys, bool armor, bool withIntegrityCheck, string compressionName)
+        public static void EncryptFile(Stream outputStream, string fileName, PgpPublicKey[] encKeys, bool armor, bool withIntegrityCheck, string compressionName, string symmAlgorithm)
         {
             if (armor)
             {
@@ -1129,18 +1189,64 @@ namespace PGPHelper
                 comptype = CompressionAlgorithmTag.Zip;
             }
 
+            SymmetricKeyAlgorithmTag symtype;
+
+            if (string.Equals(symmAlgorithm, "Aes256", StringComparison.CurrentCultureIgnoreCase))
+            {
+                symtype = SymmetricKeyAlgorithmTag.Aes256;
+            }
+            else if (string.Equals(symmAlgorithm, "Aes192", StringComparison.CurrentCultureIgnoreCase))
+            {
+                symtype = SymmetricKeyAlgorithmTag.Aes192;
+            }
+            else if (string.Equals(symmAlgorithm, "Aes128", StringComparison.CurrentCultureIgnoreCase))
+            {
+                symtype = SymmetricKeyAlgorithmTag.Aes128;
+            }
+            else if (string.Equals(symmAlgorithm, "Blowfish", StringComparison.CurrentCultureIgnoreCase))
+            {
+                symtype = SymmetricKeyAlgorithmTag.Blowfish;
+            }
+            else if (string.Equals(symmAlgorithm, "Twofish", StringComparison.CurrentCultureIgnoreCase))
+            {
+                symtype = SymmetricKeyAlgorithmTag.Twofish;
+            }
+            else if (string.Equals(symmAlgorithm, "Cast5", StringComparison.CurrentCultureIgnoreCase))
+            {
+                symtype = SymmetricKeyAlgorithmTag.Cast5;
+            }
+            else if (string.Equals(symmAlgorithm, "Idea", StringComparison.CurrentCultureIgnoreCase))
+            {
+                symtype = SymmetricKeyAlgorithmTag.Idea;
+            }
+            else if (string.Equals(symmAlgorithm, "DES", StringComparison.CurrentCultureIgnoreCase))
+            {
+                symtype = SymmetricKeyAlgorithmTag.Des;
+            }
+            else if (string.Equals(symmAlgorithm, "3DES", StringComparison.CurrentCultureIgnoreCase))
+            {
+                symtype = SymmetricKeyAlgorithmTag.TripleDes;
+            }
+            else if (string.Equals(symmAlgorithm, "SAFER", StringComparison.CurrentCultureIgnoreCase))
+            {
+                symtype = SymmetricKeyAlgorithmTag.Safer;
+            }
+            else
+            {
+                symtype = SymmetricKeyAlgorithmTag.Twofish;
+            }
             try
             {
                 MemoryStream bOut = new MemoryStream();
                 PgpCompressedDataGenerator comData = new PgpCompressedDataGenerator(
                 comptype);
                 PgpUtilities.WriteFileToLiteralData(
-                comData.Open(bOut),
-                PgpLiteralData.Binary,
-                new FileInfo(fileName));
+                    comData.Open(bOut),
+                    PgpLiteralData.Binary,
+                    new FileInfo(fileName));
                 comData.Close();
                 PgpEncryptedDataGenerator cPk = new PgpEncryptedDataGenerator(
-                SymmetricKeyAlgorithmTag.Cast5, withIntegrityCheck, new SecureRandom());
+                symtype, withIntegrityCheck, new SecureRandom());
                 foreach(PgpPublicKey encKey in encKeys)
                 {
                     cPk.AddMethod(encKey);
@@ -1170,10 +1276,9 @@ namespace PGPHelper
 
         // Based on http://jopinblog.wordpress.com/2008/06/23/pgp-single-pass-sign-and-encrypt-with-bouncy-castle/
  
-        public void SignAndEncryptFile(string actualFileName, 
+        public static void SignAndEncryptFile(string actualFileName, 
                string embeddedFileName,
                PgpSecretKey pgpSecKey, 
-               long keyId, 
                string OutputFileName,
                char[] password, 
                bool armor, 
@@ -1275,9 +1380,8 @@ namespace PGPHelper
             FileInfo embeddedFile = new FileInfo(embeddedFileName);
             FileInfo actualFile = new FileInfo(actualFileName);
 
-            // TODO: Use lastwritetime from source file
             Stream literalOut = literalDataGenerator.Open(compressedOut, PgpLiteralData.Binary,
-                embeddedFile.Name, actualFile.LastWriteTime, new byte[BUFFER_SIZE]);
+                embeddedFile.Name, DateTime.UtcNow, new byte[BUFFER_SIZE]);
 
             // Open the input file
             FileStream inputStream = actualFile.OpenRead();
