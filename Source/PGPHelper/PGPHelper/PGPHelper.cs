@@ -1028,62 +1028,6 @@ namespace PGPHelper
     {
 
         /**
-        * A simple routine that opens a key ring file and loads the first available key suitable for
-        * encryption.
-        *
-        * @param in
-        * @return
-        * @m_out
-        * @
-        */
-
-        private static PgpPublicKey ReadPublicKey(Stream inputStream)
-        {
-
-            inputStream = PgpUtilities.GetDecoderStream(inputStream);
-            PgpPublicKeyRingBundle pgpPub = new PgpPublicKeyRingBundle(inputStream);
-            //
-            // we just loop through the collection till we find a key suitable for encryption, in the real
-            // world you would probably want to be a bit smarter about this.
-            //
-            //
-            // iterate through the key rings.
-            //
-
-            foreach (PgpPublicKeyRing kRing in pgpPub.GetKeyRings())
-            {
-                foreach (PgpPublicKey k in kRing.GetPublicKeys())
-                {
-                    if (k.IsEncryptionKey)
-                    {
-                        return k;
-                    }
-                }
-            }
-            throw new ArgumentException("Can't find encryption key in key ring.");
-        }
-
-        /**
-        * Search a secret key ring collection for a secret key corresponding to
-        * keyId if it exists.
-        *
-        * @param pgpSec a secret key ring collection.
-        * @param keyId keyId we want.
-        * @param pass passphrase to decrypt secret key with.
-        * @return
-        */
-
-        private static PgpPrivateKey FindSecretKey(PgpSecretKeyRingBundle pgpSec, long keyId, char[] pass)
-        {
-            PgpSecretKey pgpSecKey = pgpSec.GetSecretKey(keyId);
-            if (pgpSecKey == null)
-            {
-                return null;
-            }
-            return pgpSecKey.ExtractPrivateKey(pass);
-        }
-
-        /**
         * decrypt the passed in message stream
         */
         public static void DecryptFile(Stream inputStream, PgpSecretKey pgpSecKey, char[] passwd, string pathToSaveFile)
@@ -1176,131 +1120,6 @@ namespace PGPHelper
             
         }
 
-        public static void DecryptFile(Stream inputStream, Stream keyIn, char[] passwd, string pathToSaveFile)
-        {
-
-            inputStream = PgpUtilities.GetDecoderStream(inputStream);
-
-            try
-            {
-
-                PgpObjectFactory pgpF = new PgpObjectFactory(inputStream);
-                PgpEncryptedDataList enc;
-                PgpObject o = pgpF.NextPgpObject();
-
-                //
-                // the first object might be a PGP marker packet.
-                //
-
-                if (o is PgpEncryptedDataList)
-                {
-                    enc = (PgpEncryptedDataList)o;
-                }
-
-                else
-                {
-                    enc = (PgpEncryptedDataList)pgpF.NextPgpObject();
-                }
-
-                //
-                // find the secret key
-                //
-
-                PgpPrivateKey sKey = null;
-                PgpPublicKeyEncryptedData pbe = null;
-                PgpSecretKeyRingBundle pgpSec = new PgpSecretKeyRingBundle(
-                PgpUtilities.GetDecoderStream(keyIn));
-
-                foreach (PgpPublicKeyEncryptedData pked in enc.GetEncryptedDataObjects())
-                {
-                    sKey = FindSecretKey(pgpSec, pked.KeyId, passwd);
-
-                    if (sKey != null)
-                    {
-                        pbe = pked;
-                        break;
-                    }
-                }
-
-                if (sKey == null)
-                {
-                    throw new ArgumentException("secret key for message not found.");
-                }
-
-                Stream clear = pbe.GetDataStream(sKey);
-                PgpObjectFactory plainFact = new PgpObjectFactory(clear);
-                PgpObject message = plainFact.NextPgpObject();
-
-                if (message is PgpCompressedData)
-                {
-                    PgpCompressedData cData = (PgpCompressedData)message;
-                    PgpObjectFactory pgpFact = new PgpObjectFactory(cData.GetDataStream());
-                    message = pgpFact.NextPgpObject();
-                }
-
-                if (message is PgpLiteralData)
-                {
-
-                    PgpLiteralData ld = (PgpLiteralData)message;
-
-                    //string outFileName = ld.FileName;
-                    //if (outFileName.Length == 0)
-
-                    //{
-
-                    //    outFileName = defaultFileName;
-
-                    //}
-
-                    Stream fOut = File.Create(pathToSaveFile);
-                    Stream unc = ld.GetInputStream();
-                    Streams.PipeAll(unc, fOut);
-                    fOut.Close();
-
-                }
-
-                else if (message is PgpOnePassSignatureList)
-                {
-                    throw new PgpException("encrypted message contains a signed message - not literal data.");
-                }
-
-                else
-                {
-                    throw new PgpException("message is not a simple encrypted file - type unknown.");
-                }
-
-                if (pbe.IsIntegrityProtected())
-                {
-
-                    if (!pbe.Verify())
-                    {
-                        throw new PgpException("message failed integrity check");
-                    }
-
-                    else
-                    {
-                        throw new PgpException("message integrity check passed");
-                    }
-                }
-
-                else
-                {
-                    throw new PgpException("no message integrity check");
-                }
-            }
-
-            catch (PgpException e)
-            {
-                Console.WriteLine(e);
-                Exception underlyingException = e.InnerException;
-
-                if (underlyingException != null)
-                {
-                    Console.WriteLine(underlyingException.Message);
-                    Console.WriteLine(underlyingException.StackTrace);
-                }
-            }
-        }
 
         public static void EncryptFile(Stream outputStream, string fileName, PgpPublicKey[] encKeys, bool armor, bool withIntegrityCheck, string compressionName)
         {
@@ -1371,40 +1190,70 @@ namespace PGPHelper
             }
         }
 
-
-        //public static void Encrypt(string filePath, string OutputFilePath, string publicKeyFile)
-        //{
-        //    Stream keyIn, fos;
-        //    keyIn = File.OpenRead(publicKeyFile);
-        //    fos = File.Create(OutputFilePath);
-        //    EncryptFile(fos, filePath, ReadPublicKey(keyIn), true, true);
-        //    keyIn.Close();
-        //    fos.Close();
-        //}
-
-
-        public static void Decrypt(string filePath, string privateKeyFile, string passPhrase, string pathToSaveFile)
-        {
-
-            Stream fin = File.OpenRead(filePath);
-            Stream keyIn = File.OpenRead(privateKeyFile);
-            DecryptFile(fin, keyIn, passPhrase.ToCharArray(), pathToSaveFile);
-            fin.Close();
-            keyIn.Close();
-        }
-
-
+        // Based on http://jopinblog.wordpress.com/2008/06/23/pgp-single-pass-sign-and-encrypt-with-bouncy-castle/
+ 
         public void SignAndEncryptFile(string actualFileName, 
                string embeddedFileName,
-               Stream SignKey, 
+               PgpSecretKey pgpSecKey, 
                long keyId, 
                string OutputFileName,
                char[] password, 
                bool armor, 
-               bool withIntegrityCheck, 
-               PgpPublicKey encKey)
+               bool withIntegrityCheck,
+               PgpPublicKey[] encKeys,
+               string compressionName,
+               string  digestName)
         {
 
+            CompressionAlgorithmTag comptype;
+
+            if (string.Equals(compressionName, "Uncompressed", StringComparison.CurrentCultureIgnoreCase))
+            {
+                comptype = CompressionAlgorithmTag.Uncompressed;
+            }
+            else if (string.Equals(compressionName, "Zip", StringComparison.CurrentCultureIgnoreCase))
+            {
+                comptype = CompressionAlgorithmTag.Zip;
+            }
+            else if (string.Equals(compressionName, "Zlib", StringComparison.CurrentCultureIgnoreCase))
+            {
+                comptype = CompressionAlgorithmTag.ZLib;
+            }
+            else if (string.Equals(compressionName, "BZip2", StringComparison.CurrentCultureIgnoreCase))
+            {
+                comptype = CompressionAlgorithmTag.BZip2;
+            }
+            else
+            {
+                comptype = CompressionAlgorithmTag.Zip;
+            }
+
+            HashAlgorithmTag digest;
+
+            if (string.Equals(digestName, "Sha256", StringComparison.CurrentCultureIgnoreCase))
+            {
+                digest = HashAlgorithmTag.Sha256;
+            }
+            else if (string.Equals(digestName, "Sha384", StringComparison.CurrentCultureIgnoreCase))
+            {
+                digest = HashAlgorithmTag.Sha384;
+            }
+            else if (string.Equals(digestName, "Sha512", StringComparison.CurrentCultureIgnoreCase))
+            {
+                digest = HashAlgorithmTag.Sha512;
+            }
+            else if (string.Equals(digestName, "MD5", StringComparison.CurrentCultureIgnoreCase))
+            {
+                digest = HashAlgorithmTag.MD5;
+            }
+            else if (string.Equals(digestName, "RipeMD160", StringComparison.CurrentCultureIgnoreCase))
+            {
+                digest = HashAlgorithmTag.RipeMD160;
+            }
+            else
+            {
+                digest = HashAlgorithmTag.Sha512;
+            }
             const int BUFFER_SIZE = 1 << 16; // should always be power of 2
             Stream outputStream = File.Open(OutputFileName, FileMode.Create);
 
@@ -1415,25 +1264,20 @@ namespace PGPHelper
             PgpEncryptedDataGenerator encryptedDataGenerator =
                 new PgpEncryptedDataGenerator(SymmetricKeyAlgorithmTag.Cast5, withIntegrityCheck, new SecureRandom());
 
-            encryptedDataGenerator.AddMethod(encKey);
+            // add keys to encrypt to
+            foreach (PgpPublicKey encKey in encKeys)
+                encryptedDataGenerator.AddMethod(encKey);
             Stream encryptedOut = encryptedDataGenerator.Open(outputStream, new byte[BUFFER_SIZE]);
 
             // Init compression
 
-            PgpCompressedDataGenerator compressedDataGenerator = new PgpCompressedDataGenerator(CompressionAlgorithmTag.Zip);
+            PgpCompressedDataGenerator compressedDataGenerator = new PgpCompressedDataGenerator(comptype);
             Stream compressedOut = compressedDataGenerator.Open(encryptedOut);
 
             // Init signature
 
-            PgpSecretKeyRingBundle pgpSecBundle = new PgpSecretKeyRingBundle(PgpUtilities.GetDecoderStream(SignKey));
-            PgpSecretKey pgpSecKey = pgpSecBundle.GetSecretKey(keyId);
-
-            if (pgpSecKey == null)
-
-                throw new ArgumentException(keyId.ToString("X") + " could not be found in specified key ring bundle.", "keyId");
-
             PgpPrivateKey pgpPrivKey = pgpSecKey.ExtractPrivateKey(password);
-            PgpSignatureGenerator signatureGenerator = new PgpSignatureGenerator(pgpSecKey.PublicKey.Algorithm, HashAlgorithmTag.Sha1);
+            PgpSignatureGenerator signatureGenerator = new PgpSignatureGenerator(pgpSecKey.PublicKey.Algorithm, digest);
             signatureGenerator.InitSign(PgpSignature.BinaryDocument, pgpPrivKey);
 
             foreach (string userId in pgpSecKey.PublicKey.GetUserIds())
@@ -1477,7 +1321,6 @@ namespace PGPHelper
             inputStream.Close();
             if (armor)
                 outputStream.Close();
-
         }
 
     }
