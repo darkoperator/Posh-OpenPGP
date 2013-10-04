@@ -1,7 +1,4 @@
-﻿[void][Reflection.Assembly]::LoadFile("C:\Users\Carlos\Documents\Posh-OpenPGP\Source\PGPHelper\PGPHelper\bin\Debug\PGPHelper.dll")
-[void][Reflection.Assembly]::LoadFile("C:\Users\Carlos\Documents\Posh-OpenPGP\Source\PGPHelper\PGPHelper\bin\Debug\BouncyCastle.CryptoExt.dll")
-
-
+﻿
 <#
 .Synopsis
    Clear OpenPGP Signs a text file or string.
