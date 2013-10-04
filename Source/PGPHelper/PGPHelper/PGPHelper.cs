@@ -306,17 +306,11 @@ namespace PGPHelper
             }
 
             PgpPbeEncryptedData pbe = (PgpPbeEncryptedData)enc[0];
-
             Stream clear = pbe.GetDataStream(passPhrase);
-
             PgpObjectFactory pgpFact = new PgpObjectFactory(clear);
-
             PgpCompressedData cData = (PgpCompressedData)pgpFact.NextPgpObject();
-
             pgpFact = new PgpObjectFactory(cData.GetDataStream());
-
             PgpLiteralData ld = (PgpLiteralData)pgpFact.NextPgpObject();
-
             Stream unc = ld.GetInputStream();
 
             return Streams.ReadAll(unc);
@@ -386,7 +380,6 @@ namespace PGPHelper
             // Compress the data.
 
             byte[] compressedData = Compress(clearData, fileName, comptype);
-
             MemoryStream bOut = new MemoryStream();
 
             // Set the Armour stream and info.
@@ -929,7 +922,6 @@ namespace PGPHelper
             //
             MemoryStream lineOut = new MemoryStream();
             int lookAhead = ReadInputLine(lineOut, fIn);
-
             ProcessLine(aOut, sGen, lineOut.ToArray());
 
             if (lookAhead != -1)
@@ -937,23 +929,17 @@ namespace PGPHelper
                 do
                 {
                     lookAhead = ReadInputLine(lineOut, lookAhead, fIn);
-
                     sGen.Update((byte)'\r');
                     sGen.Update((byte)'\n');
-
                     ProcessLine(aOut, sGen, lineOut.ToArray());
                 }
                 while (lookAhead != -1);
             }
 
             fIn.Close();
-
             aOut.EndClearText();
-
             BcpgOutputStream bOut = new BcpgOutputStream(aOut);
-
             sGen.Generate().Encode(bOut);
-
             aOut.Close();
         }
 
@@ -981,43 +967,35 @@ namespace PGPHelper
             {
                 sGen.Update(line, 0, length);
             }
-
             aOut.Write(line, 0, line.Length);
         }
 
         private static int GetLengthWithoutSeparatorOrTrailingWhitespace(byte[] line)
         {
             int end = line.Length - 1;
-
             while (end >= 0 && IsWhiteSpace(line[end]))
             {
                 end--;
             }
-
             return end + 1;
         }
 
-        private static bool IsLineEnding(
-            byte b)
+        private static bool IsLineEnding(byte b)
         {
             return b == '\r' || b == '\n';
         }
 
-        private static int GetLengthWithoutWhiteSpace(
-            byte[] line)
+        private static int GetLengthWithoutWhiteSpace(byte[] line)
         {
             int end = line.Length - 1;
-
             while (end >= 0 && IsWhiteSpace(line[end]))
             {
                 end--;
             }
-
             return end + 1;
         }
 
-        private static bool IsWhiteSpace(
-            byte b)
+        private static bool IsWhiteSpace(byte b)
         {
             return IsLineEnding(b) || b == '\t' || b == ' ';
         }
