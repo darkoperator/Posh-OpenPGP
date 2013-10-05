@@ -9,4 +9,3 @@ C:\Users\Carlos\Documents\Posh-OpenPGP\Source\PGPHelper\PGPHelper\bin\Debug\PGPH
 C:\Users\Carlos\Documents\Posh-OpenPGP\Source\PGPHelper\PGPHelper\bin\Debug\BouncyCastle.CryptoExt.dll
 C:\Users\Carlos\Documents\Posh-OpenPGP\Source\PGPHelper\PGPHelper\obj\Debug\PGPHelper.dll
 C:\Users\Carlos\Documents\Posh-OpenPGP\Source\PGPHelper\PGPHelper\obj\Debug\PGPHelper.pdb
-C:\Users\Carlos\Documents\Posh-OpenPGP\Source\PGPHelper\PGPHelper\obj\Debug\PGPHelper.csprojResolveAssemblyReference.cache

@@ -7,7 +7,7 @@
    $pubkeys = Get-PGPPublicKey -KeyRing $env:APPDATA\gnupg\pubring.gpg -UserId "Carlos","Marta" -MatchPartial
    PS c:\> Protect-PGpEncryptedFile -File C:\evidence.txt -OutFile C:\evidence.pgp -PublicKey $pubkeys -Armour -IntegrityCheck
 #>
-function Protect-PGpEncryptedFile
+function Protect-PGPEncryptedFile
 {
     [CmdletBinding()]
     Param
@@ -160,6 +160,148 @@ function Unprotect-PGPEncryptedFile
             $SecretKey, ([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($PassPhrase))),
             ($ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutFile)))
         $instream.Close()
+    }
+    End
+    {
+    }
+}
+
+
+<#
+.Synopsis
+   Encrypts a file using OpenPGP Symmetric encryption.
+.DESCRIPTION
+   Encrypts a file using OpenPGP Symmetric encryption.
+.EXAMPLE
+   Protect-PGPSymmetricEncryptedFile -File .\notes.txt -OutFile .\notes1.enc -PassPhrase (Read-Host -AsSecureString) -Verbose -Armour
+VERBOSE: Using selected compression algorithm Zip.
+VERBOSE: Using selected symmetric algorithm AES256.
+VERBOSE: Encrypting file .\notes.txt
+VERBOSE: File has been encrypted as .\notes1.enc
+#>
+
+function Protect-PGPSymmetricEncryptedFile
+{
+    [CmdletBinding()]
+    Param
+    (
+        [Parameter(Mandatory=$true,
+        ValueFromPipelineByPropertyName=$true,
+        Position=0)]
+        $File,
+        
+        [Parameter(Mandatory=$true,
+        ValueFromPipelineByPropertyName=$true,
+        Position=1)]
+        [string]$OutFile,
+
+        [Parameter(Mandatory=$true,
+        ValueFromPipelineByPropertyName=$true,
+        Position=2)]
+        [securestring]$PassPhrase,
+       
+        [Parameter(Mandatory=$false,
+        ValueFromPipelineByPropertyName=$true)]
+        [ValidateSet('Uncompressed', "Zip",'Zlib','BZip2')]
+        [string]$Compression = "Zip",
+
+        [Parameter(Mandatory=$false,
+        ValueFromPipelineByPropertyName=$true)]
+        [switch]$Armour,
+
+        [Parameter(Mandatory=$false,
+        ValueFromPipelineByPropertyName=$true)]
+        [ValidateSet("IDEA",
+            "3DES",
+            "CAST5",
+            "BlowFish",
+            "TowFish",
+            "DES",
+            "AES128",
+            "AES196",
+            "AES256")]
+        [string]$SymmetricAlgorithm = 'AES256'
+    )
+
+    Begin
+    {
+    }
+    Process
+    {
+        $outstream = [System.IO.File]::Create(($ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutFile)))
+        $instream = [System.IO.File]::OpenRead((Resolve-Path $file).Path)
+        Write-Verbose "Using selected compression algorithm $($Compression)."
+        Write-Verbose "Using selected symmetric algorithm $($SymmetricAlgorithm)."
+        Write-Verbose "Encrypting file $($File)"
+
+        [PGPHelper.SymmetricFileProcessor]::Encrypt($instream,
+            $outstream, 
+            $SymmetricAlgorithm, 
+            ([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($PassPhrase))), 
+            $Armour,
+            $Compression, 
+            $true)
+        $outstream.close()
+        $instream.Close()
+
+        Write-Verbose "File has been encrypted as $($OutFile)"
+    }
+    End
+    {
+    }
+}
+
+
+
+<#
+.Synopsis
+   Decrypts a OpenPGP symmetrically encrypted file.
+.DESCRIPTION
+   Decrypts a OpenPGP symmetrically encrypted file.
+.EXAMPLE
+   Unprotect-PGPSymmetricEncryptedFile -File .\notes.enc -OutFile .\notes1.txt -PassPhrase (Read-Host -AsSecureString) -Verbose
+VERBOSE: Encrypting file C:\Users\Carlos\Desktop\notes.enc
+VERBOSE: File has been decrypted as .\notes1.txt
+#>
+
+function Unprotect-PGPSymmetricEncryptedFile
+{
+    [CmdletBinding()]
+    Param
+    (
+        [Parameter(Mandatory=$true,
+        ValueFromPipelineByPropertyName=$true,
+        Position=0)]
+        [string]$File,
+        
+        [Parameter(Mandatory=$true,
+        ValueFromPipelineByPropertyName=$true,
+        Position=1)]
+        [string]$OutFile,
+
+        [Parameter(Mandatory=$true,
+        ValueFromPipelineByPropertyName=$true,
+        Position=2)]
+        [securestring]$PassPhrase
+    )
+
+    Begin
+    {
+    }
+    Process
+    {
+        Write-Verbose "Encrypting file $((Resolve-Path $file).Path)"
+
+        [string]$outstream = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutFile)
+        $instream = [System.IO.File]::OpenRead((Resolve-Path $file).Path)
+
+        [PGPHelper.SymmetricFileProcessor]::DecryptFile($instream,
+            $outstream, 
+            ([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($PassPhrase))))
+
+        $instream.Close()
+
+        Write-Verbose "File has been decrypted as $($OutFile)"
     }
     End
     {
