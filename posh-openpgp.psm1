@@ -106,13 +106,13 @@ function Get-PGPSecretKey
         [Parameter(Mandatory=$true,
         ValueFromPipelineByPropertyName=$true,
         Position=0)]
-        $KeyRing,
+        [string]$SecretKeyBundle,
 
         [Parameter(Mandatory=$false,
         ValueFromPipelineByPropertyName=$true,
         Position=2)]
         [Parameter(ParameterSetName='Id')]
-        $Id,
+        [string]$Id,
 
         [Parameter(Mandatory=$false,
         ValueFromPipelineByPropertyName=$true,
@@ -166,7 +166,7 @@ function Get-PGPSecretKey
     }
     Process
     {
-        [system.io.stream]$stream = [system.io.File]::OpenRead((Resolve-Path $KeyRing).Path)
+        [system.io.stream]$stream = [system.io.File]::OpenRead((Resolve-Path $SecretKeyBundle).Path)
         # Decode key ring
         $instream = [Org.BouncyCastle.Bcpg.OpenPgp.PgpUtilities]::GetDecoderStream($stream)
         try
@@ -174,7 +174,7 @@ function Get-PGPSecretKey
             $PrivKeyBundle = New-Object -TypeName Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKeyRingBundle -ArgumentList $instream
             if (!($PrivKeyBundle))
             {
-                throw "$($KeyRing) is not a valid key ring."
+                throw "$($SecretKeyBundle) is not a valid key ring."
             }
 
             switch ($PsCmdlet.ParameterSetName) 
@@ -466,17 +466,16 @@ function Get-PGPPublicKey
     [OutputType([Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKey])]
     Param
     (
-        # Param1 help description
         [Parameter(Mandatory=$true,
         ValueFromPipelineByPropertyName=$true,
         Position=0)]
-        $KeyRing,
+        [string]$PublicKeyBundle,
 
         [Parameter(Mandatory=$false,
         ValueFromPipelineByPropertyName=$true,
         Position=2)]
         [Parameter(ParameterSetName='Id')]
-        $Id,
+        [string]$Id,
 
         [Parameter(Mandatory=$false,
         ValueFromPipelineByPropertyName=$true,
@@ -529,7 +528,7 @@ function Get-PGPPublicKey
     }
     Process
     {
-        [system.io.stream]$stream = [system.io.File]::OpenRead($KeyRing)
+        [system.io.stream]$stream = [system.io.File]::OpenRead($PublicKeyBundle)
         # Decode key ring
         $instream = [Org.BouncyCastle.Bcpg.OpenPgp.PgpUtilities]::GetDecoderStream($stream)
         try
@@ -537,7 +536,7 @@ function Get-PGPPublicKey
             $PubKeyBundle = New-Object -TypeName Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKeyRingBundle -ArgumentList $instream
             if (!($PubKeyBundle))
             {
-                throw "$($KeyRing) is not a valid key ring."
+                throw "$($PublicKeyBundle) is not a valid key ring."
             }
             switch ($PsCmdlet.ParameterSetName) 
             {
@@ -1413,6 +1412,625 @@ function Update-PGPSecKeyPassPhrase
             $PrivKeyBundle.Encode($SecretStream)
             $SecretStream.Close()
         }
+    }
+    End
+    {
+    }
+}
+
+
+<#
+.Synopsis
+   Create a new OpenPGP Secret Key Bundle file.
+.DESCRIPTION
+   Create a new OpenPGP Secret Key Bundle file. A bundle file to copy from or initial secret key can be given.
+.EXAMPLE
+   New-PGPSecretRingBundle -File c:\bundle1.pgp -SecKeyFile C:\6F65422B5F35AAAF_sec.pgp -Verbose
+VERBOSE: Creating a PGP Security Key Bundle at c:\bundle1.pgp
+VERBOSE: Secret Key file C:\6F65422B5F35AAAF_sec.pgp was specified for initial import.
+VERBOSE: Opening the Secret Key file.
+VERBOSE: Decoding key file.
+VERBOSE: Extracting key rings from the file.
+VERBOSE: Adding key 6F65422B5F35AAAF ring to the bundle.
+VERBOSE: Writing bundle to file.
+VERBOSE: Secret key bundle saved.
+
+PS C:\> Get-PGPSecretKey -KeyRing C:\bundle1.pgp
+
+
+Id                     : 6F65422B5F35AAAF
+PreferedSymmetric      : {AES256, AES192, AES128, Towfish...}
+PreferedHash           : {Sha256, Sha384, Sha512, RipeMD160}
+PreferedCompression    : {ZLib, Zip, Bzip2}
+ExpirationDate         : 0
+IsSigningKey           : True
+IsMasterKey            : True
+KeyEncryptionAlgorithm : Aes256
+KeyId                  : 8026894664906156719
+PublicKey              : Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKey
+UserIds                : {Matt Greaber <matt@psninja.com>}
+UserAttributes         : {}
+
+.EXAMPLE
+    New-PGPSecretRingBundle -File c:\bundle1.pgp -SecKeyFile C:\Users\Carlos\AppData\Roaming\gnupg\secring.gpg -Verbose
+VERBOSE: Creating a PGP Security Key Bundle at c:\bundle1.pgp
+VERBOSE: Secret Key file C:\Users\Carlos\AppData\Roaming\gnupg\secring.gpg was specified for initial import.
+VERBOSE: Opening the Secret Key file.
+VERBOSE: Decoding key file.
+VERBOSE: Extracting key rings from the file.
+VERBOSE: Adding key DCC9422A3F0DB692 ring to the bundle.
+VERBOSE: Adding key 48E6AA1C3ED92AC3 ring to the bundle.
+VERBOSE: Adding key 1F09E81ACCFF0A6A ring to the bundle.
+VERBOSE: Adding key 52FB7527672C924D ring to the bundle.
+VERBOSE: Writing bundle to file.
+VERBOSE: Secret key bundle saved.
+#>
+function New-PGPSecretRingBundle
+{
+    [CmdletBinding()]
+    Param
+    (
+        [Parameter(Mandatory=$true,
+        ValueFromPipelineByPropertyName=$true,
+        Position=0)]
+        [string]$File,
+
+        [Parameter(Mandatory=$false,
+        ValueFromPipelineByPropertyName=$true,
+        Position=1)]
+        [ValidateScript({Test-Path $_})]
+        [string]$SecKeyFile
+    
+    )
+
+    Begin
+    {
+    }
+    Process
+    {
+        # Create an empty memory stream
+        $EmptyStream = New-Object System.IO.MemoryStream
+
+        # create a secret key bundle
+        $NewKeyRingBundle = New-Object -TypeName Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKeyRingBundle -ArgumentList $EmptyStream
+        $EmptyStream.close()
+
+        $SecretStream = [System.IO.File]::OpenWrite($ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($File))
+
+        Write-Verbose "Creating a PGP Security Key Bundle at $($File)"
+
+        if ($SecKeyFile)
+        {
+            Write-Verbose "Secret Key file $($SecKeyFile) was specified for initial import."
+            # Open and existing secret key to import and get keyring
+            Write-Verbose "Opening the Secret Key file."
+            $SecKeyStream = [System.IO.File]::OpenRead((Resolve-Path $SecKeyFile).Path)
+            Write-Verbose "Decoding key file."
+            $instream = [Org.BouncyCastle.Bcpg.OpenPgp.PgpUtilities]::GetDecoderStream($SecKeyStream)
+            $PrivKeyBundle = New-Object -TypeName Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKeyRingBundle -ArgumentList $instream
+            Write-Verbose "Extracting key rings from the file."
+            $PrivRing = $PrivKeyBundle.GetKeyRings()
+            $SecKeyStream.Close()
+
+            $count = 0
+            # Add keyring to bundle
+            foreach($Ring in $PrivRing)
+            {
+                $keyId = (($Ring.GetSecretKey()).KeyId |  foreach { $_.ToString("X2") }) -join ""
+                Write-Verbose "Adding key $($keyId) ring to the bundle."
+                if ($count -eq 0)
+                {
+                    $PrivKeyBundle = [Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKeyRingBundle]::AddSecretKeyRing($NewKeyRingBundle, $Ring)
+                }
+                else
+                {
+                    $PrivKeyBundle = [Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKeyRingBundle]::AddSecretKeyRing($PrivKeyBundle, $Ring)
+                }
+                $count+= 1
+            }
+            Write-Verbose "Writing bundle to file."
+            $PrivKeyBundle.Encode($SecretStream)
+        }
+        else
+        {
+            Write-Verbose "Writing bundle to file."
+            $NewKeyRingBundle.Encode($SecretStream)
+        }
+
+        # Make sure we close the streams
+
+        $SecretStream.Close()
+        Write-Verbose "Secret key bundle saved."
+    }
+    End
+    {
+    }
+}
+
+
+<#
+.Synopsis
+   Create a new OpenPGP Public Key Bundle file.
+.DESCRIPTION
+   Create a new OpenPGP Public Key Bundle file. A bundle file to copy from or initial Public key can be given.
+.EXAMPLE
+    New-PGPPublicRingBundle -File c:\pubbundle.pgp -Verbose
+VERBOSE: Creating a PGP Public Key Bundle at c:\pubbundle.pgp
+VERBOSE: Writing bundle to file.
+VERBOSE: Secret key bundle saved.
+
+.EXAMPLE
+    New-PGPPublicRingBundle -File c:\pubbundle.pgp -PubKeyFile C:\6F65422B5F35AAAF_pub.pgp -Verbose
+VERBOSE: Creating a PGP Public Key Bundle at c:\pubbundle.pgp
+VERBOSE: Public Key file C:\6F65422B5F35AAAF_pub.pgp was specified for initial import.
+VERBOSE: Opening the Public Key file.
+VERBOSE: Decoding key file.
+VERBOSE: Extracting key rings from the file.
+VERBOSE: Adding key 6F65422B5F35AAAF ring to the bundle.
+VERBOSE: Writing bundle to file.
+VERBOSE: Secret key bundle saved.
+
+.EXAMPLE
+    New-PGPPublicRingBundle -File c:\pubbundle.pgp -PubKeyFile C:\Users\Carlos\AppData\Roaming\gnupg\pubring.gpg -Verbose
+VERBOSE: Creating a PGP Public Key Bundle at c:\pubbundle.pgp
+VERBOSE: Public Key file C:\Users\Carlos\AppData\Roaming\gnupg\pubring.gpg was specified for initial import.
+VERBOSE: Opening the Public Key file.
+VERBOSE: Decoding key file.
+VERBOSE: Extracting key rings from the file.
+VERBOSE: Adding key 6F65422B5F35AAAF ring to the bundle.
+VERBOSE: Adding key 52FB7527672C924D ring to the bundle.
+VERBOSE: Adding key DCC9422A3F0DB692 ring to the bundle.
+VERBOSE: Adding key 48E6AA1C3ED92AC3 ring to the bundle.
+VERBOSE: Adding key 1F09E81ACCFF0A6A ring to the bundle.
+VERBOSE: Adding key 35DEE7CD20B848D1 ring to the bundle.
+VERBOSE: Writing bundle to file.
+VERBOSE: Secret key bundle saved.
+
+.EXAMPLE
+   Another example of how to use this cmdlet
+#>
+function New-PGPPublicRingBundle
+{
+    [CmdletBinding()]
+    Param
+    (
+        [Parameter(Mandatory=$true,
+        ValueFromPipelineByPropertyName=$true,
+        Position=0)]
+        [string]$File,
+
+        [Parameter(Mandatory=$false,
+        ValueFromPipelineByPropertyName=$true,
+        Position=1)]
+        [ValidateScript({Test-Path $_})]
+        [string]$PubKeyFile
+    
+    )
+
+    Begin
+    {
+    }
+    Process
+    {
+        # Create an empty memory stream
+        $EmptyStream = New-Object System.IO.MemoryStream
+
+        # create a secret key bundle
+        $NewKeyRingBundle = New-Object -TypeName Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKeyRingBundle -ArgumentList $EmptyStream
+        $EmptyStream.close()
+
+        $SecretStream = [System.IO.File]::OpenWrite($ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($File))
+
+        Write-Verbose "Creating a PGP Public Key Bundle at $($File)"
+
+        if ($PubKeyFile)
+        {
+            Write-Verbose "Public Key file $($PubKeyFile) was specified for initial import."
+            # Open and existing secret key to import and get keyring
+            Write-Verbose "Opening the Public Key file."
+            $PubKeyStream = [System.IO.File]::OpenRead((Resolve-Path $PubKeyFile).Path)
+            Write-Verbose "Decoding key file."
+            $instream = [Org.BouncyCastle.Bcpg.OpenPgp.PgpUtilities]::GetDecoderStream($PubKeyStream)
+            $PubKeyBundle = New-Object -TypeName Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKeyRingBundle -ArgumentList $instream
+            Write-Verbose "Extracting key rings from the file."
+            $PubRing = $PubKeyBundle.GetKeyRings()
+            $PubKeyStream.Close()
+
+            $count = 0
+            # Add keyring to bundle
+            foreach($Ring in $PubRing)
+            {
+                $keyId = (($Ring.GetPublicKey()).KeyId |  foreach { $_.ToString("X2") }) -join ""
+                Write-Verbose "Adding key $($keyId) ring to the bundle."
+                if ($count -eq 0)
+                {
+                    $PubKeyBundle = [Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKeyRingBundle]::AddPublicKeyRing($NewKeyRingBundle, $Ring)
+                }
+                else
+                {
+                    $PubKeyBundle = [Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKeyRingBundle]::AddPublicKeyRing($PubKeyBundle, $Ring)
+                }
+                $count+= 1
+            }
+            Write-Verbose "Writing bundle to file."
+            $PubKeyBundle.Encode($SecretStream)
+        }
+        else
+        {
+            Write-Verbose "Writing bundle to file."
+            $NewKeyRingBundle.Encode($SecretStream)
+        }
+
+        # Make sure we close the streams
+
+        $SecretStream.Close()
+        Write-Verbose "Public key bundle saved."
+    }
+    End
+    {
+    }
+}
+
+
+<#
+.Synopsis
+   Imports a PGP Public Key or PGP Public Key Bundle in to an existing PGP Public Bundle.
+.DESCRIPTION
+   Imports a PGP Public Key or PGP Public Key Bundle in to an existing PGP Public Bundle.
+.EXAMPLE
+   Import-PGPPublicKey -PublicKeyBundle C:\pubbundle.pgp -PubKeyFile $env:APPDATA\gnupg\pubring.gpg -Verbose
+VERBOSE: Opening a PGP Public Key Bundle at C:\pubbundle.pgp
+VERBOSE: Public Key file C:\Users\Carlos\AppData\Roaming\gnupg\pubring.gpg was specified for initial import.
+VERBOSE: Opening the Public Key file.
+VERBOSE: Decoding key file.
+VERBOSE: Extracting key rings from the file.
+VERBOSE: Adding key 6F65422B5F35AAAF ring to the bundle.
+WARNING: Key already exists in bundle.
+VERBOSE: Adding key 52FB7527672C924D ring to the bundle.
+VERBOSE: Adding key DCC9422A3F0DB692 ring to the bundle.
+VERBOSE: Adding key 48E6AA1C3ED92AC3 ring to the bundle.
+VERBOSE: Adding key 1F09E81ACCFF0A6A ring to the bundle.
+VERBOSE: Adding key 35DEE7CD20B848D1 ring to the bundle.
+VERBOSE: Writing bundle to file.
+VERBOSE: Public key bundle saved.
+
+.EXAMPLE
+   Import-PGPPublicKey -PublicKeyBundle C:\pubbundle.pgp -PubKeyFile C:\6F65422B5F35AAAF_pub.pgp -Verbose
+VERBOSE: Opening a PGP Public Key Bundle at C:\pubbundle.pgp
+VERBOSE: Public Key file C:\6F65422B5F35AAAF_pub.pgp was specified for initial import.
+VERBOSE: Opening the Public Key file.
+VERBOSE: Decoding key file.
+VERBOSE: Extracting key rings from the file.
+VERBOSE: Adding key 6F65422B5F35AAAF ring to the bundle.
+VERBOSE: Writing bundle to file.
+VERBOSE: Public key bundle saved.
+#>
+function Import-PGPPublicKey
+{
+    [CmdletBinding()]
+    Param
+    (
+        [Parameter(Mandatory=$true,
+        ValueFromPipelineByPropertyName=$true,
+        Position=0)]
+        [string]$PublicKeyBundle,
+
+        [Parameter(Mandatory=$true,
+        ValueFromPipelineByPropertyName=$true,
+        Position=1)]
+        [ValidateScript({Test-Path $_})]
+        [string]$PubKeyFile
+    
+    )
+
+    Begin
+    {
+    }
+    Process
+    {
+        Write-Verbose "Opening a PGP Public Key Bundle at $($PublicKeyBundle)"
+        # Create an empty memory stream
+        $PubStream = [System.IO.File]::OpenRead((Resolve-Path $PublicKeyBundle).Path)
+
+        # create a secret key bundle
+        $NewKeyRingBundle = New-Object -TypeName Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKeyRingBundle -ArgumentList $PubStream
+        $PubStream.close()
+
+        $SecretStream = [System.IO.File]::OpenWrite($ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PublicKeyBundle))
+
+        Write-Verbose "Public Key file $($PubKeyFile) was specified for initial import."
+        # Open and existing secret key to import and get keyring
+        Write-Verbose "Opening the Public Key file."
+        $PubKeyStream = [System.IO.File]::OpenRead((Resolve-Path $PubKeyFile).Path)
+        Write-Verbose "Decoding key file."
+        $instream = [Org.BouncyCastle.Bcpg.OpenPgp.PgpUtilities]::GetDecoderStream($PubKeyStream)
+        $PubKeyBundle = New-Object -TypeName Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKeyRingBundle -ArgumentList $instream
+        Write-Verbose "Extracting key rings from the file."
+        $PubRing = $PubKeyBundle.GetKeyRings()
+        $PubKeyStream.Close()
+
+        $count = 0
+        # Add keyring to bundle
+        foreach($Ring in $PubRing)
+        {
+            try
+            {
+                $keyId = (($Ring.GetPublicKey()).KeyId |  foreach { $_.ToString("X2") }) -join ""
+                Write-Verbose "Adding key $($keyId) ring to the bundle."
+                if ($count -eq 0)
+                {
+                    $PubKeyBundle = [Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKeyRingBundle]::AddPublicKeyRing($NewKeyRingBundle, $Ring)
+                }
+                else
+                {
+                    $PubKeyBundle = [Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKeyRingBundle]::AddPublicKeyRing($PubKeyBundle, $Ring)
+                }
+                $count+= 1
+            }
+            catch [Exception]
+            {
+                if ($_.Exception.Message -like "*Bundle already contains a key with a keyId for the passed in ring*")
+                {
+                    Write-Warning "Key already exists in bundle."
+                }
+            }
+        }
+        Write-Verbose "Writing bundle to file."
+        $PubKeyBundle.Encode($SecretStream)
+        
+
+        # Make sure we close the streams
+
+        $SecretStream.Close()
+        Write-Verbose "Public key bundle saved."
+    }
+    End
+    {
+    }
+}
+
+
+<#
+.Synopsis
+   Imports a PGP Secret Key or PGP Secret Key Bundle in to an existing PGP Public Bundle.
+.DESCRIPTION
+   Imports a PGP Secret Key or PGP Secret Key Bundle in to an existing PGP Public Bundle.
+.EXAMPLE
+   Import-PGPSecretKey -SecretKeyBundle C:\secbundle.pgp -SecretKeyFile C:\6F65422B5F35AAAF_sec.pgp -Verbose
+VERBOSE: Opening a PGP Public Key Bundle at C:\secbundle.pgp
+VERBOSE: Public Key file C:\6F65422B5F35AAAF_sec.pgp was specified for initial import.
+VERBOSE: Opening the Public Key file.
+VERBOSE: Decoding key file.
+VERBOSE: Extracting key rings from the file.
+VERBOSE: Adding key 6F65422B5F35AAAF ring to the bundle.
+VERBOSE: Writing bundle to file.
+VERBOSE: Public key bundle saved.
+#>
+function Import-PGPSecretKey
+{
+    [CmdletBinding()]
+    Param
+    (
+        [Parameter(Mandatory=$true,
+        ValueFromPipelineByPropertyName=$true,
+        Position=0)]
+        [string]$SecretKeyBundle,
+
+        [Parameter(Mandatory=$true,
+        ValueFromPipelineByPropertyName=$true,
+        Position=1)]
+        [ValidateScript({Test-Path $_})]
+        [string]$SecretKeyFile
+    
+    )
+
+    Begin
+    {
+    }
+    Process
+    {
+        Write-Verbose "Opening a PGP Secret Key Bundle at $($SecretKeyBundle)"
+        # Create an empty memory stream
+        $PubStream = [System.IO.File]::OpenRead((Resolve-Path $SecretKeyBundle).Path)
+
+        # create a secret key bundle
+        $NewKeyRingBundle = New-Object -TypeName Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKeyRingBundle -ArgumentList $PubStream
+        $PubStream.close()
+
+        $SecretStream = [System.IO.File]::OpenWrite($ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($SecretKeyBundle))
+
+        Write-Verbose "Secret Key file $($SecretKeyFile) was specified for initial import."
+        # Open and existing secret key to import and get keyring
+        Write-Verbose "Opening the Public Key file."
+        $PubKeyStream = [System.IO.File]::OpenRead((Resolve-Path $SecretKeyFile).Path)
+        Write-Verbose "Decoding key file."
+        $instream = [Org.BouncyCastle.Bcpg.OpenPgp.PgpUtilities]::GetDecoderStream($PubKeyStream)
+        $PubKeyBundle = New-Object -TypeName Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKeyRingBundle -ArgumentList $instream
+        Write-Verbose "Extracting key rings from the file."
+        $PubRing = $PubKeyBundle.GetKeyRings()
+        $PubKeyStream.Close()
+
+        $count = 0
+        # Add keyring to bundle
+        foreach($Ring in $PubRing)
+        {
+            try
+            {
+                $keyId = (($Ring.GetPublicKey()).KeyId |  foreach { $_.ToString("X2") }) -join ""
+                Write-Verbose "Adding key $($keyId) ring to the bundle."
+                if ($count -eq 0)
+                {
+                    $PubKeyBundle = [Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKeyRingBundle]::AddSecretKeyRing($NewKeyRingBundle, $Ring)
+                }
+                else
+                {
+                    $PubKeyBundle = [Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKeyRingBundle]::AddSecretKeyRing($PubKeyBundle, $Ring)
+                }
+                $count+= 1
+            }
+            catch [Exception]
+            {
+                if ($_.Exception.Message -like "*Bundle already contains a key with a keyId for the passed in ring*")
+                {
+                    Write-Warning "Key already exists in bundle."
+                }
+            }
+        }
+        Write-Verbose "Writing bundle to file."
+        $PubKeyBundle.Encode($SecretStream)
+        
+
+        # Make sure we close the streams
+
+        $SecretStream.Close()
+        Write-Verbose "Public key bundle saved."
+    }
+    End
+    {
+    }
+}
+
+
+<#
+.Synopsis
+   Removes a Secret key from a PGP Secret key bundle.
+.DESCRIPTION
+   Removes a Secret key from a PGP Secret key bundle given a UserId.
+.EXAMPLE
+   Remove-PGPSecretKey -SecretKeyBundle C:\bundle1.pgp -UserID mdelvalle@tacticalinfosec.com -Verbose
+VERBOSE: Opening key bundle C:\bundle1.pgp
+VERBOSE: Looking for UserId mdelvalle@tacticalinfosec.com
+VERBOSE: Removing key from bundle.
+VERBOSE: Saving key bundle.
+#>
+function Remove-PGPSecretKey
+{
+    [CmdletBinding()]
+    Param
+    (
+        [Parameter(Mandatory=$true,
+        ValueFromPipelineByPropertyName=$true,
+        Position=0)]
+        $SecretKeyBundle,
+
+        [Parameter(Mandatory=$true,
+        ValueFromPipelineByPropertyName=$true,
+        Position=1)]
+        $UserID
+    )
+
+    Begin
+    {
+    }
+    Process
+    {
+        # Open Key bundle
+        Write-Verbose "Opening key bundle $($SecretKeyBundle)"
+        $SecStream = [System.IO.File]::OpenRead((Resolve-Path $SecretKeyBundle).Path)
+        $KeyRingBundle = New-Object -TypeName Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKeyRingBundle -ArgumentList $SecStream
+        $SecStream.close()
+        $SecStream.Dispose()
+        # Find key to remove by UserID
+        Write-Verbose "Looking for UserId $($UserID)"
+        $RingToRemove = $KeyRingBundle.GetKeyRings($UserID, $true, $true)
+        if ($RingToRemove.length -gt 1)
+        {
+            Write-Warning "More than one key was found with that UserID!"
+            return
+        }
+        elseif ($RingToRemove.length -eq 0)
+        {
+            Write-Warning "A Key with that UserId was not found."
+            return
+        }
+        else
+        {
+            foreach($Ring in $RingToRemove)
+            {
+                Write-Verbose "Removing key from bundle."
+                $SecKeyBundle = [Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKeyRingBundle]::RemoveSecretKeyRing($KeyRingBundle, $Ring)
+            }
+        }
+
+        Write-Verbose "Saving key bundle."
+        $SecBundle = [System.IO.File]::Create((Resolve-Path $SecretKeyBundle).Path)
+        $SecKeyBundle.encode($SecBundle)
+        $SecBundle.Close()
+        $SecBundle.Dispose()
+    }
+    End
+    {
+    }
+}
+
+
+<#
+.Synopsis
+   Removes a Public key from a PGP Public key bundle.
+.DESCRIPTION
+   Removes a Public key from a PGP Public key bundle given a UserId.
+.EXAMPLE
+   Remove-PGPPublicKey -PublicKeyBundle C:\pubbundle.pgp -UserID dark@tacticalinfosec.com -Verbose
+VERBOSE: Opening key bundle C:\pubbundle.pgp
+VERBOSE: Looking for UserId dark@tacticalinfosec.com
+VERBOSE: Removing key from bundle.
+VERBOSE: Saving key bundle.
+#>
+function Remove-PGPPublicKey
+{
+    [CmdletBinding()]
+    [OutputType([int])]
+    Param
+    (
+        [Parameter(Mandatory=$true,
+        ValueFromPipelineByPropertyName=$true,
+        Position=0)]
+        $PublicKeyBundle,
+
+        [Parameter(Mandatory=$true,
+        ValueFromPipelineByPropertyName=$true,
+        Position=1)]
+        $UserID
+    )
+
+    Begin
+    {
+    }
+    Process
+    {
+        # Open Key bundle
+        Write-Verbose "Opening key bundle $($PublicKeyBundle)"
+        $PubStream = [System.IO.File]::OpenRead((Resolve-Path $PublicKeyBundle).Path)
+        $KeyRingBundle = New-Object -TypeName Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKeyRingBundle -ArgumentList $PubStream
+        $PubStream.close()
+        $PubStream.Dispose()
+        # Find key to remove by UserID
+        Write-Verbose "Looking for UserId $($UserID)"
+        $RingToRemove = $KeyRingBundle.GetKeyRings($UserID, $true, $true)
+        if ($RingToRemove.length -gt 1)
+        {
+            Write-Warning "More than one key was found with that UserID!"
+            return
+        }
+        elseif ($RingToRemove.length -eq 0)
+        {
+            Write-Warning "A Key with that UserId was not found."
+            return
+        }
+        else
+        {
+            foreach($Ring in $RingToRemove)
+            {
+                Write-Verbose "Removing key from bundle."
+                $PubKeyBundle = [Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKeyRingBundle]::RemovePublicKeyRing($KeyRingBundle, $Ring)
+            }
+        }
+
+        Write-Verbose "Saving key bundle."
+        $PubBundle = [System.IO.File]::Create((Resolve-Path $PublicKeyBundle).Path)
+        $PubKeyBundle.encode($PubBundle)
+        $PubBundle.Close()
+        $PubBundle.Dispose()
     }
     End
     {

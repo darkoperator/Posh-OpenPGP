@@ -165,3 +165,4 @@ function Unprotect-PGPEncryptedFile
     {
     }
 }
+
