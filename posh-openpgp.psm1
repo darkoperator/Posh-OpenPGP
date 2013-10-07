@@ -106,6 +106,7 @@ function Get-PGPSecretKey
         [Parameter(Mandatory=$true,
         ValueFromPipelineByPropertyName=$true,
         Position=0)]
+        [ValidateScript({Test-Path $_})]
         [string]$SecretKeyBundle,
 
         [Parameter(Mandatory=$false,
@@ -199,29 +200,33 @@ function Get-PGPSecretKey
 
                     foreach($sig in $secpubsigs) 
                     {
-                        foreach($Subpckt in $sig.GetHashedSubPackets())
+                        # Make sure we look at the subpackets for the key and not signers
+                        if ($sig.KeyId -eq $kp.KeyId)
                         {
-                            if ([datetime]::UtcNow -lt $ValidTime -or $ValidTime -eq 0) 
-                            {                                                                                                                                                                                         
-                                $compalgos = $Subpckt.GetPreferredCompressionAlgorithms()
-                                foreach ($calgo in $compalgos)
-                                {
-                                    $PreferedCompressionAlgos += $compressionalgos[$calgo]
-                                }                                                                            
-                                $symalgost = $Subpckt.GetPreferredSymmetricAlgorithms()
-                                foreach ($salgo in $symalgost)
-                                {
-                                    $PreferedSymAlgos += $symetricalgos[$salgo]
-                                }
-                                $hashgost = $Subpckt.GetPreferredHashAlgorithms()
-                                foreach ($halgo in $hashgost)
-                                {
-                                    $PreferedHashAlgos += $hashalgos[$halgo]
-                                }
-                            }
-                            else
+                            foreach($Subpckt in $sig.GetHashedSubPackets())
                             {
-                                Write-Warning "Subkey $(($sig.KeyId |  foreach { $_.ToString("X2") }) -join '') has expired"
+                                if ([datetime]::UtcNow -lt $ValidTime -or $ValidTime -eq 0) 
+                                {                                                                                                                                                                                         
+                                    $compalgos = $Subpckt.GetPreferredCompressionAlgorithms()
+                                    foreach ($calgo in $compalgos)
+                                    {
+                                        $PreferedCompressionAlgos += $compressionalgos[$calgo]
+                                    }                                                                            
+                                    $symalgost = $Subpckt.GetPreferredSymmetricAlgorithms()
+                                    foreach ($salgo in $symalgost)
+                                    {
+                                        $PreferedSymAlgos += $symetricalgos[$salgo]
+                                    }
+                                    $hashgost = $Subpckt.GetPreferredHashAlgorithms()
+                                    foreach ($halgo in $hashgost)
+                                    {
+                                        $PreferedHashAlgos += $hashalgos[$halgo]
+                                    }
+                                }
+                                else
+                                {
+                                    Write-Warning "Subkey $(($sig.KeyId |  foreach { $_.ToString("X2") }) -join '') has expired"
+                                }
                             }
                         }
                     }
@@ -261,29 +266,33 @@ function Get-PGPSecretKey
 
                         foreach($sig in $secpubsigs) 
                         {
-                            foreach($Subpckt in $sig.GetHashedSubPackets())
+                            # Make sure we look at the subpackets for the key and not signers
+                            if ($sig.KeyId -eq $kp.KeyId)
                             {
-                                if ([datetime]::UtcNow -lt $ValidTime -or $ValidTime -eq 0) 
-                                {                                                                                                                                                                                         
-                                    $compalgos = $Subpckt.GetPreferredCompressionAlgorithms()
-                                    foreach ($calgo in $compalgos)
-                                    {
-                                        $PreferedCompressionAlgos += $compressionalgos[$calgo]
-                                    }                                                                            
-                                    $symalgost = $Subpckt.GetPreferredSymmetricAlgorithms()
-                                    foreach ($salgo in $symalgost)
-                                    {
-                                        $PreferedSymAlgos += $symetricalgos[$salgo]
-                                    }
-                                    $hashgost = $Subpckt.GetPreferredHashAlgorithms()
-                                    foreach ($halgo in $hashgost)
-                                    {
-                                        $PreferedHashAlgos += $hashalgos[$halgo]
-                                    }
-                                }
-                                else
+                                foreach($Subpckt in $sig.GetHashedSubPackets())
                                 {
-                                    Write-Warning "Subkey $(($sig.KeyId |  foreach { $_.ToString("X2") }) -join '') has expired"
+                                    if ([datetime]::UtcNow -lt $ValidTime -or $ValidTime -eq 0) 
+                                    {                                                                                                                                                                                         
+                                        $compalgos = $Subpckt.GetPreferredCompressionAlgorithms()
+                                        foreach ($calgo in $compalgos)
+                                        {
+                                            $PreferedCompressionAlgos += $compressionalgos[$calgo]
+                                        }                                                                            
+                                        $symalgost = $Subpckt.GetPreferredSymmetricAlgorithms()
+                                        foreach ($salgo in $symalgost)
+                                        {
+                                            $PreferedSymAlgos += $symetricalgos[$salgo]
+                                        }
+                                        $hashgost = $Subpckt.GetPreferredHashAlgorithms()
+                                        foreach ($halgo in $hashgost)
+                                        {
+                                            $PreferedHashAlgos += $hashalgos[$halgo]
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Write-Warning "Subkey $(($sig.KeyId |  foreach { $_.ToString("X2") }) -join '') has expired"
+                                    }
                                 }
                             }
                         }
@@ -331,29 +340,33 @@ function Get-PGPSecretKey
 
                                 foreach($sig in $secpubsigs) 
                                 {
-                                    foreach($Subpckt in $sig.GetHashedSubPackets())
+                                    # Make sure we look at the subpackets for the key and not signers
+                                    if ($sig.KeyId -eq $kp.KeyId)
                                     {
-                                        if ([datetime]::UtcNow -lt $ValidTime -or $ValidTime -eq 0) 
-                                        {                                                                                                                                                                                         
-                                            $compalgos = $Subpckt.GetPreferredCompressionAlgorithms()
-                                            foreach ($calgo in $compalgos)
-                                            {
-                                                $PreferedCompressionAlgos += $compressionalgos[$calgo]
-                                            }                                                                            
-                                            $symalgost = $Subpckt.GetPreferredSymmetricAlgorithms()
-                                            foreach ($salgo in $symalgost)
-                                            {
-                                                $PreferedSymAlgos += $symetricalgos[$salgo]
-                                            }
-                                            $hashgost = $Subpckt.GetPreferredHashAlgorithms()
-                                            foreach ($halgo in $hashgost)
-                                            {
-                                                $PreferedHashAlgos += $hashalgos[$halgo]
-                                            }
-                                        }
-                                        else
+                                        foreach($Subpckt in $sig.GetHashedSubPackets())
                                         {
-                                            Write-Warning "Subkey $(($sig.KeyId |  foreach { $_.ToString("X2") }) -join '') has expired"
+                                            if ([datetime]::UtcNow -lt $ValidTime -or $ValidTime -eq 0) 
+                                            {                                                                                                                                                                                         
+                                                $compalgos = $Subpckt.GetPreferredCompressionAlgorithms()
+                                                foreach ($calgo in $compalgos)
+                                                {
+                                                    $PreferedCompressionAlgos += $compressionalgos[$calgo]
+                                                }                                                                            
+                                                $symalgost = $Subpckt.GetPreferredSymmetricAlgorithms()
+                                                foreach ($salgo in $symalgost)
+                                                {
+                                                    $PreferedSymAlgos += $symetricalgos[$salgo]
+                                                }
+                                                $hashgost = $Subpckt.GetPreferredHashAlgorithms()
+                                                foreach ($halgo in $hashgost)
+                                                {
+                                                    $PreferedHashAlgos += $hashalgos[$halgo]
+                                                }
+                                            }
+                                            else
+                                            {
+                                                Write-Warning "Subkey $(($sig.KeyId |  foreach { $_.ToString("X2") }) -join '') has expired"
+                                            }
                                         }
                                     }
                                 }
@@ -469,6 +482,7 @@ function Get-PGPPublicKey
         [Parameter(Mandatory=$true,
         ValueFromPipelineByPropertyName=$true,
         Position=0)]
+        [ValidateScript({Test-Path $_})]
         [string]$PublicKeyBundle,
 
         [Parameter(Mandatory=$false,
@@ -487,7 +501,11 @@ function Get-PGPPublicKey
         ValueFromPipelineByPropertyName=$true,
         Position=2)]
         [Parameter(ParameterSetName='All')]
-        [switch]$All
+        [switch]$All,
+
+        [Parameter(Mandatory=$false,
+        ValueFromPipelineByPropertyName=$true)]
+        [switch]$EncryptionOnly
     )
 
     Begin
@@ -544,65 +562,81 @@ function Get-PGPPublicKey
                 'Id'
                 {
                     $idlongformat = ($Id | foreach {[Convert]::ToInt64($_,16)})  -join ""
-                    $kp = $PubKeyBundle.GetPublicKey($idlongformat)
-                    if ($kp)
+
+                    $PublicKeyCollection = $PubKeyBundle.GetPublicKey($idlongformat)
+                    if (!($PublicKeyCollection))
                     {
-                        $secpubsigs = $kp.GetSignatures()                                                                                                                                                                                                      
-                                
-                        $PreferedHashAlgos        = @()
-                        $PreferedSymAlgos         = @()
-                        $PreferedCompressionAlgos = @()
+                        Write-Verbose "No key was found for $($Id)."
+                        return
+                    }
 
-                        # RFC 4880 5.2.3.10.  Signature Expiration Time
-                        if ($kp.ValidDays -ne 0)
+                    foreach($kp in $PublicKeyCollection)
+                    {
+                        if ($kp)
                         {
-                            $ValidTime = $kp.CreationTime.AddDays($kp.ValidDays)
-                        }
-                        else
-                        {
-                            $ValidTime = 0
-                        }
-
-                        foreach($sig in $secpubsigs) 
-                        {
-                            foreach($Subpckt in $sig.GetHashedSubPackets())
+                            # Check if only encryption keys where requested.
+                            if ($EncryptionOnly)
                             {
-                                if ([datetime]::UtcNow -le $ValidTime -or $ValidTime -eq 0) 
+                                if (!($kp.IsEncryptionKey))
                                 {
-                                    Write-Verbose "Retrieving prefered Compression Algorithms"                                                                                                                                                                                          
-                                    $compalgos = $Subpckt.GetPreferredCompressionAlgorithms()
-                                    foreach ($calgo in $compalgos)
-                                    {
-                                        $PreferedCompressionAlgos += $compressionalgos[$calgo]
-                                    }
-                                    Write-Verbose "Retrieving prefered Symmetric Algorithms"                                                                            
-                                    $symalgost = $Subpckt.GetPreferredSymmetricAlgorithms()
-                                    foreach ($salgo in $symalgost)
-                                    {
-                                        $PreferedSymAlgos += $symetricalgos[$salgo]
-                                    }
-                                    Write-Verbose "Retrieving prefered Hash Algorithms"  
-                                    $hashgost = $Subpckt.GetPreferredHashAlgorithms()
-                                    foreach ($halgo in $hashgost)
-                                    {
-                                        $PreferedHashAlgos += $hashalgos[$halgo]
-                                    }
-                                }
-                                else
-                                {
-                                    Write-Warning "Subkey $(($sig.KeyId |  foreach { $_.ToString("X2") }) -join '') has expired"
+                                    Write-warning "Key was found but it is not an ecryption key."
+                                    continu
                                 }
                             }
+                            $secpubsigs = $kp.GetSignatures()                                                                                                                                                                                                      
+                                
+                            $PreferedHashAlgos        = @()
+                            $PreferedSymAlgos         = @()
+                            $PreferedCompressionAlgos = @()
+
+                            # RFC 4880 5.2.3.10.  Signature Expiration Time
+                            if ($kp.ValidDays -ne 0)
+                            {
+                                $ValidTime = $kp.CreationTime.AddDays($kp.ValidDays)
+                            }
+                            else
+                            {
+                                $ValidTime = 0
+                            }
+
+                            foreach($sig in $secpubsigs) 
+                            {
+                                foreach($Subpckt in $sig.GetHashedSubPackets())
+                                {
+                                    if ([datetime]::UtcNow -le $ValidTime -or $ValidTime -eq 0) 
+                                    {                                                                                                                                                                                         
+                                        $compalgos = $Subpckt.GetPreferredCompressionAlgorithms()
+                                        foreach ($calgo in $compalgos)
+                                        {
+                                            $PreferedCompressionAlgos += $compressionalgos[$calgo]
+                                        }                                                                            
+                                        $symalgost = $Subpckt.GetPreferredSymmetricAlgorithms()
+                                        foreach ($salgo in $symalgost)
+                                        {
+                                            $PreferedSymAlgos += $symetricalgos[$salgo]
+                                        } 
+                                        $hashgost = $Subpckt.GetPreferredHashAlgorithms()
+                                        foreach ($halgo in $hashgost)
+                                        {
+                                            $PreferedHashAlgos += $hashalgos[$halgo]
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Write-Warning "Subkey $(($sig.KeyId |  foreach { $_.ToString("X2") }) -join '') has expired"
+                                    }
+                                }
+                            }
+                            # Add some additional properties to the object
+                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "Id" -Value (($kp.KeyId  |  foreach { $_.ToString("X2") }) -join "")
+                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "UserIds" -Value ($kp.GetUserIds())
+                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "Fingerprint" -Value (($kp.GetFingerprint() |  foreach { $_.ToString("X2") }) -join "")
+                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedSymmetric" -Value $PreferedSymAlgos
+                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedHash" -Value $PreferedHashAlgos
+                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedCompression" -Value $PreferedCompressionAlgos
+                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "ExpirationDate" -Value $ValidTime
+                            $kp
                         }
-                        # Add some additional properties to the object
-                        Add-Member -InputObject $kp -MemberType NoteProperty -Name "Id" -Value (($kp.KeyId  |  foreach { $_.ToString("X2") }) -join "")
-                        Add-Member -InputObject $kp -MemberType NoteProperty -Name "UserIds" -Value ($kp.GetUserIds())
-                        Add-Member -InputObject $kp -MemberType NoteProperty -Name "Fingerprint" -Value (($kp.GetFingerprint() |  foreach { $_.ToString("X2") }) -join "")
-                        Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedSymmetric" -Value $PreferedSymAlgos
-                        Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedHash" -Value $PreferedHashAlgos
-                        Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedCompression" -Value $PreferedCompressionAlgos
-                        Add-Member -InputObject $kp -MemberType NoteProperty -Name "ExpirationDate" -Value $ValidTime
-                        $kp
                     }
                 }
 
@@ -613,11 +647,98 @@ function Get-PGPPublicKey
                         $keyring = $PubKeyBundle.GetKeyRings($uid, $true,$true)
                         foreach($key in $KeyRing)
                         {
-                            $kp = $key.GetPublicKey()
+                            $PublicKeyCollection = $key.GetPublicKeys()
+                            foreach($kp in $PublicKeyCollection)
+                            {
+                                if ($kp)
+                                {
+                                    if ($EncryptionOnly)
+                                    {
+                                        if (!($kp.IsEncryptionKey))
+                                        {
+                                            Write-verbose "Key was found but it is not an ecryption key."
+                                            continue
+                                        }
+                                    }
+                                    $secpubsigs = $kp.GetSignatures()                                                                                                                                                                                                      
+                                
+                                    $PreferedHashAlgos        = @()
+                                    $PreferedSymAlgos         = @()
+                                    $PreferedCompressionAlgos = @()
+
+                                    # RFC 4880 5.2.3.10.  Signature Expiration Time
+                                    if ($kp.ValidDays -ne 0)
+                                    {
+                                        $ValidTime = $kp.CreationTime.AddDays($kp.ValidDays)
+                                    }
+                                    else
+                                    {
+                                        $ValidTime = 0
+                                    }
+
+                                    foreach($sig in $secpubsigs) 
+                                    {
+                                        foreach($Subpckt in $sig.GetHashedSubPackets())
+                                        {
+                                            if ([datetime]::UtcNow -le $ValidTime -or $ValidTime -eq 0) 
+                                            {                                                                                                                                                                                         
+                                                $compalgos = $Subpckt.GetPreferredCompressionAlgorithms()
+                                                foreach ($calgo in $compalgos)
+                                                {
+                                                    $PreferedCompressionAlgos += $compressionalgos[$calgo]
+                                                }                                                                       
+                                                $symalgost = $Subpckt.GetPreferredSymmetricAlgorithms()
+                                                foreach ($salgo in $symalgost)
+                                                {
+                                                    $PreferedSymAlgos += $symetricalgos[$salgo]
+                                                } 
+                                                $hashgost = $Subpckt.GetPreferredHashAlgorithms()
+                                                foreach ($halgo in $hashgost)
+                                                {
+                                                    $PreferedHashAlgos += $hashalgos[$halgo]
+                                                }
+                                            }
+                                            else
+                                            {
+                                                Write-Warning "Subkey $(($sig.KeyId |  foreach { $_.ToString("X2") }) -join '') has expired"
+                                            }
+                                        }
+                                    }
+                                    # Add some additional properties to the object
+                                    Add-Member -InputObject $kp -MemberType NoteProperty -Name "Id" -Value (($kp.KeyId  |  foreach { $_.ToString("X2") }) -join "")
+                                    Add-Member -InputObject $kp -MemberType NoteProperty -Name "UserIds" -Value ($kp.GetUserIds())
+                                    Add-Member -InputObject $kp -MemberType NoteProperty -Name "Fingerprint" -Value (($kp.GetFingerprint() |  foreach { $_.ToString("X2") }) -join "")
+                                    Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedSymmetric" -Value $PreferedSymAlgos
+                                    Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedHash" -Value $PreferedHashAlgos
+                                    Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedCompression" -Value $PreferedCompressionAlgos
+                                    Add-Member -InputObject $kp -MemberType NoteProperty -Name "ExpirationDate" -Value $ValidTime
+                                    $kp
+                                }
+                            }
+                        }
+                    }
+                }
+
+                'All'
+                {
+                    # Get all keyrings from the file
+                    foreach ($keyring in $PubKeyBundle.GetKeyRings())
+                    {
+                        # Get only the public keys from the key ring 
+                        $PublicKeyCollection = $keyring.GetPublicKeys()
+                        foreach($kp in $PublicKeyCollection)
+                        {
                             if ($kp)
                             {
+                                if ($EncryptionOnly)
+                                {
+                                    if (!($kp.IsEncryptionKey))
+                                    {
+                                        Write-verbose "Key was found but it is not an ecryption key."
+                                        continue
+                                    }
+                                }
                                 $secpubsigs = $kp.GetSignatures()                                                                                                                                                                                                      
-                                
                                 $PreferedHashAlgos        = @()
                                 $PreferedSymAlgos         = @()
                                 $PreferedCompressionAlgos = @()
@@ -663,6 +784,7 @@ function Get-PGPPublicKey
                                         }
                                     }
                                 }
+
                                 # Add some additional properties to the object
                                 Add-Member -InputObject $kp -MemberType NoteProperty -Name "Id" -Value (($kp.KeyId  |  foreach { $_.ToString("X2") }) -join "")
                                 Add-Member -InputObject $kp -MemberType NoteProperty -Name "UserIds" -Value ($kp.GetUserIds())
@@ -673,75 +795,7 @@ function Get-PGPPublicKey
                                 Add-Member -InputObject $kp -MemberType NoteProperty -Name "ExpirationDate" -Value $ValidTime
                                 $kp
                             }
-                        }
-                    }
-                }
-
-                'All'
-                {
-                    # Get all keyrings from the file
-                    foreach ($keyring in $PubKeyBundle.GetKeyRings())
-                    {
-                        # Get only the public keys from the key ring 
-                        $kp = $keyring.GetPublicKey()
-                        if ($kp)
-                        {
-                            $secpubsigs = $kp.GetSignatures()                                                                                                                                                                                                      
-                            $PreferedHashAlgos        = @()
-                            $PreferedSymAlgos         = @()
-                            $PreferedCompressionAlgos = @()
-
-                            # RFC 4880 5.2.3.10.  Signature Expiration Time
-                            if ($kp.ValidDays -ne 0)
-                            {
-                                $ValidTime = $kp.CreationTime.AddDays($kp.ValidDays)
-                                $kp.ValidDays
-                            }
-                            else
-                            {
-                                $ValidTime = 0
-                            }
-
-                            foreach($sig in $secpubsigs) 
-                            {
-                                foreach($Subpckt in $sig.GetHashedSubPackets())
-                                {
-                                    if ([datetime]::UtcNow -le $ValidTime -or $ValidTime -eq 0) 
-                                    {
-                                        Write-Verbose "Retrieving prefered Compression Algorithms"                                                                                                                                                                                          
-                                        $compalgos = $Subpckt.GetPreferredCompressionAlgorithms()
-                                        foreach ($calgo in $compalgos)
-                                        {
-                                            $PreferedCompressionAlgos += $compressionalgos[$calgo]
-                                        }
-                                        Write-Verbose "Retrieving prefered Symmetric Algorithms"                                                                            
-                                        $symalgost = $Subpckt.GetPreferredSymmetricAlgorithms()
-                                        foreach ($salgo in $symalgost)
-                                        {
-                                            $PreferedSymAlgos += $symetricalgos[$salgo]
-                                        }
-                                        Write-Verbose "Retrieving prefered Hash Algorithms"  
-                                        $hashgost = $Subpckt.GetPreferredHashAlgorithms()
-                                        foreach ($halgo in $hashgost)
-                                        {
-                                            $PreferedHashAlgos += $hashalgos[$halgo]
-                                        }
-                                    }
-                                    else
-                                    {
-                                        Write-Warning "Subkey $(($sig.KeyId |  foreach { $_.ToString("X2") }) -join '') has expired"
-                                    }
-                                }
-                            }
-                            # Add some additional properties to the object
-                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "Id" -Value (($kp.KeyId  |  foreach { $_.ToString("X2") }) -join "")
-                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "UserIds" -Value ($kp.GetUserIds())
-                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "Fingerprint" -Value (($kp.GetFingerprint() |  foreach { $_.ToString("X2") }) -join "")
-                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedSymmetric" -Value $PreferedSymAlgos
-                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedHash" -Value $PreferedHashAlgos
-                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedCompression" -Value $PreferedCompressionAlgos
-                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "ExpirationDate" -Value $ValidTime
-                            $kp
+                                    
                         }
                     }
                 }
@@ -2036,3 +2090,271 @@ function Remove-PGPPublicKey
     {
     }
 }
+
+
+<#
+.Synopsis
+   Short description
+.DESCRIPTION
+   Long description
+.EXAMPLE
+   Example of how to use this cmdlet
+.EXAMPLE
+   Another example of how to use this cmdlet
+#>
+function Export-PGPPublicKey
+{
+    [CmdletBinding(DefaultParameterSetName='UserId')]
+
+    Param
+    (
+        [Parameter(Mandatory=$true,
+        Position=0,
+        ParameterSetName='Id')]
+        [Parameter(ParameterSetName='UserId')]
+        [ValidateScript({Test-Path $_})]
+        [string]$PublicKeyBundle,
+
+        [Parameter(Mandatory=$false,
+        ValueFromPipelineByPropertyName=$true,
+        Position=2)]
+        [Parameter(ParameterSetName='Id',Position=1)]
+        [string]$Id,
+
+        [Parameter(Mandatory=$false,
+        ValueFromPipelineByPropertyName=$true,
+        Position=2)]
+        [Parameter(ParameterSetName='UserId', Position=1)]
+        [string]$UserId,
+
+        [Parameter(Mandatory=$false,
+        ValueFromPipelineByPropertyName=$true,
+        Position=3)]
+        [Parameter(ParameterSetName='Id',Position=1)]
+        [Parameter(ParameterSetName='UserId')]
+        [string]$File,
+
+        [Parameter(Mandatory=$false,
+        ValueFromPipelineByPropertyName=$true)]
+        [switch]$Armor
+        
+    )
+
+    Begin
+    {
+    }
+    Process
+    {
+        switch ($PsCmdlet.ParameterSetName) 
+        {
+            'Id'
+            {
+                Write-Verbose "Finding key with Id $($Id)"
+                $pub = Get-PGPPublicKey -PublicKeyBundle $PublicKeyBundle -Id $Id 
+
+            }
+            'UserId'
+            {
+                Write-Verbose "Finding key that match UserId $($UserId)"
+                $pub = Get-PGPPublicKey -PublicKeyBundle $PublicKeyBundle -UserId $UserId
+                if ($pub.Length -gt 1)
+                {
+                    Write-Error -Message "UserdID Matched multiple keys, use Key ID instead" -ErrorAction Stop
+                } 
+            }
+
+        }
+
+        # Exits if no key is found.
+        if (!($pub))
+        {
+            Write-Error "Public Key was not found for export."
+            return
+        }
+
+        Write-Verbose "Creating file $($File) to save exported key."
+        # Open the file where we will export the keys to. 
+        $PublicStream = [System.IO.File]::Create($ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($File))
+        
+        # If out put is Armor a proper stream is created to export the key.
+        if ($Armor)
+        {
+            Write-Verbose "Generating Armor output."
+            [Org.BouncyCastle.Bcpg.ArmoredOutputStream]$PublicStream_armor = new-object Org.BouncyCastle.Bcpg.ArmoredOutputStream $PublicStream
+
+            # Set the version number on the Armor header
+            $PublicStream_armor.SetHeader("Version","Posh-OpenPGP")
+            $Pub.Encode($PublicStream_armor)
+
+            # on large keys it may take a while to finish so we give it 2 second wait.
+            sleep(2)
+            $PublicStream_armor.close()
+        }
+        else
+        {
+            Write-Verbose "Generating binary output."
+            $Pub.Encode($PublicStream)
+            # on large keys it may take a while to finish so we give it 2 second wait.
+            sleep(2)
+        }
+        
+        $PublicStream.Close()
+        Write-Verbose "Key has been exported."
+    }
+    End
+    {
+    }
+}
+
+
+<#
+.Synopsis
+   Short description
+.DESCRIPTION
+   Long description
+.EXAMPLE
+   Example of how to use this cmdlet
+.EXAMPLE
+   Another example of how to use this cmdlet
+#>
+function Export-PGPSecretKey
+{
+    [CmdletBinding(DefaultParameterSetName='UserId')]
+
+    Param
+    (
+        [Parameter(Mandatory=$true,
+        Position=0,
+        ParameterSetName='Id')]
+        [Parameter(ParameterSetName='UserId')]
+        [ValidateScript({Test-Path $_})]
+        [string]$SecretKeyBundle,
+
+        [Parameter(Mandatory=$false,
+        ValueFromPipelineByPropertyName=$true,
+        Position=2)]
+        [Parameter(ParameterSetName='Id',Position=1)]
+        [string]$Id,
+
+        [Parameter(Mandatory=$false,
+        ValueFromPipelineByPropertyName=$true,
+        Position=2)]
+        [Parameter(ParameterSetName='UserId', Position=1)]
+        [string]$UserId,
+
+        [Parameter(Mandatory=$false,
+        ValueFromPipelineByPropertyName=$true,
+        Position=3)]
+        [Parameter(ParameterSetName='Id',Position=1)]
+        [Parameter(ParameterSetName='UserId')]
+        [string]$File,
+
+        [Parameter(Mandatory=$false,
+        ValueFromPipelineByPropertyName=$true)]
+        [switch]$Armor
+        
+    )
+
+    Begin
+    {
+    }
+    Process
+    {
+        switch ($PsCmdlet.ParameterSetName) 
+        {
+            'Id'
+            {
+                Write-Verbose "Finding key with Id $($Id)"
+                $sec = Get-PGPSecretKey -SecretKeyBundle $SecretKeyBundle -Id $Id 
+
+            }
+            'UserId'
+            {
+                Write-Verbose "Finding key that match UserId $($UserId)"
+                $sec = Get-PGPSecretKey -SecretKeyBundle $SecretKeyBundle -UserId $UserId
+                if ($sec.Length -gt 1)
+                {
+                    Write-Error -Message "UserdID Matched multiple keys, use Key ID instead" -ErrorAction Stop
+                } 
+            }
+
+        }
+
+        # Exits if no key is found.
+        if (!($sec))
+        {
+            Write-Error "Public Key was not found for export."
+            return
+        }
+
+        Write-Verbose "Creating file $($File) to save exported key."
+        # Open the file where we will export the keys to. 
+        $SecretStream = [System.IO.File]::Create($ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($File))
+        
+        # If out put is Armor a proper stream is created to export the key.
+        if ($Armor)
+        {
+            Write-Verbose "Generating Armor output."
+            [Org.BouncyCastle.Bcpg.ArmoredOutputStream]$SecretStream_armor = new-object Org.BouncyCastle.Bcpg.ArmoredOutputStream $SecretStream
+
+            # Set the version number on the Armor header
+            $SecretStream_armor.SetHeader("Version","Posh-OpenPGP")
+            $sec.Encode($SecretStream_armor)
+
+            # on large keys it may take a while to finish so we give it 2 second wait.
+            sleep(2)
+            $SecretStream_armor.close()
+        }
+        else
+        {
+            Write-Verbose "Generating binary output."
+            $sec.Encode($SecretStream)
+            # on large keys it may take a while to finish so we give it 2 second wait.
+            sleep(2)
+        }
+        
+        $SecretStream.Close()
+        Write-Verbose "Key has been exported."
+    }
+    End
+    {
+    }
+}
+
+
+function IsExpired($key)
+{
+    if ($key -is [Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKey])
+    {
+        $kp = $key
+    }
+    elseif ($key -is [Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKey])
+    {
+        $kp = $key.PublicKey
+
+    }
+    else
+    {
+        Write-Error "Could not determine key type."
+        return
+    }
+
+    if ($kp.ValidDays -ne 0)
+    {
+        $ValidTime = $kp.CreationTime.AddDays($kp.ValidDays)
+        if ([datetime]::UtcNow -le $ValidTime) 
+        {
+            return $false
+        }
+        else
+        {
+            return $true
+        }     
+    }
+    else
+    {
+        return $false
+    }
+
+}
+

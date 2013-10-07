@@ -61,6 +61,8 @@ function Protect-PGPEncryptedFile
     Process
     {
         $outstream = [System.IO.File]::Create(($ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutFile)))
+
+        # Select compression algorithm.
         if ($Compression)
         {
             Write-Verbose "Using selected compression algorithm $($Compression)."
@@ -68,18 +70,38 @@ function Protect-PGPEncryptedFile
         }
         else
         {
+            # Check if we got more that one public key to work with.
             if ($PublicKey.length -eq 1)
             {
-                Write-Verbose "Using prefered compression algorithm $($PublicKey.PreferedCompression[0])."
-                $compression = $PublicKey.PreferedCompression[0]
+                # if we only got one public key lets see if it has preffered compreesion algos
+                if ($PublicKey.PreferedCompression -ne 0)
+                {
+                    Write-Verbose "Using prefered compression algorithm $($PublicKey.PreferedCompression[0])."
+                    $compression = $PublicKey.PreferedCompression[0]
+                }
+                else
+                {
+                    Write-Verbose "Key does not have predered compression algorithm usin Zip"
+                    $compression = "Zip"
+                }
             }
             else
             {
-                Write-Verbose "Using prefered compression algorithm $($PublicKey[0].PreferedCompression[0])."
-                $compression = $PublicKey[0].PreferedCompression[0]
+                # If we have more than one key we use the settings of the first one
+                if ($PublicKey[0].PreferedCompression -ne 0)
+                {
+                    Write-Verbose "Using prefered compression algorithm $($PublicKey[0].PreferedCompression[0])."
+                    $compression = $PublicKey[0].PreferedCompression[0]
+                }
+                else
+                {
+                    Write-Verbose "Key does not have predered compression algorithm usin Zip"
+                    $compression = "Zip"
+                }
             }
         }
 
+        # Select Symmetric Algorithm
         if ($SymmetricAlgorithm)
         {
             Write-Verbose "Using selected symmetric algorithm $($SymmetricAlgorithm)."
@@ -89,13 +111,29 @@ function Protect-PGPEncryptedFile
         {
             if ($PublicKey.length -eq 1)
             {
-                Write-Verbose "Using prefered compression algorithm $($PublicKey.PreferedSymmetric[0])."
-                $SymmetricAlgorithm = $PublicKey.PreferedSymmetric[0]
+                if ($PublicKey.PreferedSymmetric -ne 0)
+                {
+                    Write-Verbose "Using prefered symmetric algorithm $($PublicKey.PreferedSymmetric[0])."
+                    $SymmetricAlgorithm = $PublicKey.PreferedSymmetric[0]
+                }
+                else
+                {
+                    Write-Verbose "Key does not have predered symmetric algorithm usin AES256"
+                    $SymmetricAlgorithm = 'AES256'
+                }
             }
             else
             {
-                Write-Verbose "Using prefered compression algorithm $($PublicKey[0].PreferedSymmetric[0])."
-                $SymmetricAlgorithm = $PublicKey[0].PreferedSymmetric[0]
+                if ($PublicKey[0].PreferedSymmetric -ne 0)
+                {
+                    Write-Verbose "Using prefered symmetric algorithm $($PublicKey[0].PreferedSymmetric[0])."
+                    $SymmetricAlgorithm = $PublicKey[0].PreferedSymmetric[0]
+                }
+                else
+                {
+                    Write-Verbose "Key does not have predered symmetric algorithm usin AES256"
+                    $SymmetricAlgorithm = 'AES256'
+                }
             }
         }
         Write-Verbose "Encrypting file $($File)"
