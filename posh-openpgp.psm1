@@ -505,8 +505,7 @@ function Get-PGPPublicKey
 
         [Parameter(Mandatory=$false,
         ValueFromPipelineByPropertyName=$true)]
-        [ValidateSet("Encryption", "Certification", "Signing", "Any")]
-        [string]$KeyUsage = "Any",
+        [switch]$EncryptionOnly,
 
         [Parameter(Mandatory=$false,
         ValueFromPipelineByPropertyName=$true)]
@@ -616,6 +615,7 @@ function Get-PGPPublicKey
                 $MasterPreferedHashAlgos        = @()
                 $MasterPreferedSymAlgos         = @()
                 $MasterPreferedCompressionAlgos = @()
+                $MasterUserIDs = @()
 
                 # for checking subsignaturs
                 $MasterKeyID = 0
@@ -626,6 +626,7 @@ function Get-PGPPublicKey
                     if ($PublicKey.IsMasterKey)
                     {
                         $MasterKeyID = $PublicKey.KeyId
+                        $MasterUserIDs = $PublicKey.GetUserIds()
                     }
 
                     $KeyID = (($PublicKey.KeyId  |  foreach { $_.ToString("X2") }) -join "")
@@ -645,17 +646,7 @@ function Get-PGPPublicKey
                     }
 
                     # Select keys depending on their usage
-                    if (($KeyUsage -eq "Encryption") -and !(IsEnCryptionKey($PublicKey)))
-                    {
-                        Continue
-                    }
-
-                    if (($KeyUsage -eq "Signing") -and !(IsSigningKey($PublicKey)))
-                    {
-                        Continue
-                    }
-
-                    if (($KeyUsage -eq "Certification") -and !(IsCertificationKey($PublicKey)))
+                    if (($EncryptionOnly) -and !(IsEnCryptionKey($PublicKey)))
                     {
                         Continue
                     }
@@ -843,9 +834,23 @@ function Get-PGPPublicKey
                         $Usage += "Certification"
                     }
 
+
+                    if (!($PublicKey.IsMasterKey))
+                    {
+                        $PublickkeyUserIds = $PublicKey.GetUserIds()
+                        if ($PublicKey.GetUserIds())
+                        {
+                            $PublickkeyUserIds = $MasterUserIDs
+                        }
+                    }
+                    else
+                    {
+                        $PublickkeyUserIds = $MasterUserIDs
+                    }
+
                     # Add some additional properties to the object
                     Add-Member -InputObject $PublicKey -MemberType NoteProperty -Name "Id" -Value (($PublicKey.KeyId  |  foreach { $_.ToString("X2") }) -join "")
-                    Add-Member -InputObject $PublicKey -MemberType NoteProperty -Name "UserIds" -Value ($PublicKey.GetUserIds())
+                    Add-Member -InputObject $PublicKey -MemberType NoteProperty -Name "UserIds" -Value $PublickkeyUserIds
                     Add-Member -InputObject $PublicKey -MemberType NoteProperty -Name "Fingerprint" -Value (($PublicKey.GetFingerprint() |  foreach { $_.ToString("X2") }) -join "")
                     Add-Member -InputObject $PublicKey -MemberType NoteProperty -Name "PreferedSymmetric" -Value $PreferedSymAlgos
                     Add-Member -InputObject $PublicKey -MemberType NoteProperty -Name "PreferedHash" -Value $PreferedHashAlgos
