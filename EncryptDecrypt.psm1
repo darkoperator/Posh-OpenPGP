@@ -50,8 +50,7 @@ function Protect-PGPEncryptedFile
             "DES",
             "AES128",
             "AES196",
-            "AES256",
-            "SAFER")]
+            "AES256")]
         [string]$SymmetricAlgorithm
     )
 

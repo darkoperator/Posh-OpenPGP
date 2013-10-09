@@ -505,7 +505,16 @@ function Get-PGPPublicKey
 
         [Parameter(Mandatory=$false,
         ValueFromPipelineByPropertyName=$true)]
-        [switch]$EncryptionOnly
+        [ValidateSet("Encryption", "Certification", "Signing", "Any")]
+        [string]$KeyUsage = "Any",
+
+        [Parameter(Mandatory=$false,
+        ValueFromPipelineByPropertyName=$true)]
+        [switch]$IncludeRevoked,
+
+        [Parameter(Mandatory=$false,
+        ValueFromPipelineByPropertyName=$true)]
+        [switch]$IncludeExpired
     )
 
     Begin
@@ -563,158 +572,32 @@ function Get-PGPPublicKey
                 {
                     $idlongformat = ($Id | foreach {[Convert]::ToInt64($_,16)})  -join ""
 
-                    $PublicKeyCollection = $PubKeyBundle.GetPublicKey($idlongformat)
-                    if (!($PublicKeyCollection))
+                    $keyrings = $PubKeyBundle.GetPublicKeyRing($idlongformat)
+                    if (!($keyrings))
                     {
                         Write-Verbose "No key was found for $($Id)."
                         return
-                    }
-
-                    foreach($kp in $PublicKeyCollection)
-                    {
-                        if ($kp)
-                        {
-                            # Check if only encryption keys where requested.
-                            if ($EncryptionOnly)
-                            {
-                                if (!($kp.IsEncryptionKey))
-                                {
-                                    Write-warning "Key was found but it is not an ecryption key."
-                                    continu
-                                }
-                            }
-                            $secpubsigs = $kp.GetSignatures()                                                                                                                                                                                                      
-                                
-                            $PreferedHashAlgos        = @()
-                            $PreferedSymAlgos         = @()
-                            $PreferedCompressionAlgos = @()
-
-                            # RFC 4880 5.2.3.10.  Signature Expiration Time
-                            if ($kp.ValidDays -ne 0)
-                            {
-                                $ValidTime = $kp.CreationTime.AddDays($kp.ValidDays)
-                            }
-                            else
-                            {
-                                $ValidTime = 0
-                            }
-
-                            foreach($sig in $secpubsigs) 
-                            {
-                                foreach($Subpckt in $sig.GetHashedSubPackets())
-                                {
-                                    if ([datetime]::UtcNow -le $ValidTime -or $ValidTime -eq 0) 
-                                    {                                                                                                                                                                                         
-                                        $compalgos = $Subpckt.GetPreferredCompressionAlgorithms()
-                                        foreach ($calgo in $compalgos)
-                                        {
-                                            $PreferedCompressionAlgos += $compressionalgos[$calgo]
-                                        }                                                                            
-                                        $symalgost = $Subpckt.GetPreferredSymmetricAlgorithms()
-                                        foreach ($salgo in $symalgost)
-                                        {
-                                            $PreferedSymAlgos += $symetricalgos[$salgo]
-                                        } 
-                                        $hashgost = $Subpckt.GetPreferredHashAlgorithms()
-                                        foreach ($halgo in $hashgost)
-                                        {
-                                            $PreferedHashAlgos += $hashalgos[$halgo]
-                                        }
-                                    }
-                                    else
-                                    {
-                                        Write-Warning "Subkey $(($sig.KeyId |  foreach { $_.ToString("X2") }) -join '') has expired"
-                                    }
-                                }
-                            }
-                            # Add some additional properties to the object
-                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "Id" -Value (($kp.KeyId  |  foreach { $_.ToString("X2") }) -join "")
-                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "UserIds" -Value ($kp.GetUserIds())
-                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "Fingerprint" -Value (($kp.GetFingerprint() |  foreach { $_.ToString("X2") }) -join "")
-                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedSymmetric" -Value $PreferedSymAlgos
-                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedHash" -Value $PreferedHashAlgos
-                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedCompression" -Value $PreferedCompressionAlgos
-                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "ExpirationDate" -Value $ValidTime
-                            $kp
-                        }
                     }
                 }
 
                 'UserId'
                 {
+                    $keyrings = @()
                     foreach($uid in $UserId)
                     {
-                        $keyring = $PubKeyBundle.GetKeyRings($uid, $true,$true)
-                        foreach($key in $KeyRing)
+                        $keyrings += $PubKeyBundle.GetKeyRings($uid,$true,$true)
+                        # check if a keyring was found for the given user id
+                        if ($keyrings -eq $null)
                         {
-                            $PublicKeyCollection = $key.GetPublicKeys()
-                            foreach($kp in $PublicKeyCollection)
-                            {
-                                if ($kp)
-                                {
-                                    if ($EncryptionOnly)
-                                    {
-                                        if (!($kp.IsEncryptionKey))
-                                        {
-                                            Write-verbose "Key was found but it is not an ecryption key."
-                                            continue
-                                        }
-                                    }
-                                    $secpubsigs = $kp.GetSignatures()                                                                                                                                                                                                      
-                                
-                                    $PreferedHashAlgos        = @()
-                                    $PreferedSymAlgos         = @()
-                                    $PreferedCompressionAlgos = @()
+                            Write-host "No keyrings where found for the UserId $($uid)"
+                            continue
+                        }
 
-                                    # RFC 4880 5.2.3.10.  Signature Expiration Time
-                                    if ($kp.ValidDays -ne 0)
-                                    {
-                                        $ValidTime = $kp.CreationTime.AddDays($kp.ValidDays)
-                                    }
-                                    else
-                                    {
-                                        $ValidTime = 0
-                                    }
-
-                                    foreach($sig in $secpubsigs) 
-                                    {
-                                        foreach($Subpckt in $sig.GetHashedSubPackets())
-                                        {
-                                            if ([datetime]::UtcNow -le $ValidTime -or $ValidTime -eq 0) 
-                                            {                                                                                                                                                                                         
-                                                $compalgos = $Subpckt.GetPreferredCompressionAlgorithms()
-                                                foreach ($calgo in $compalgos)
-                                                {
-                                                    $PreferedCompressionAlgos += $compressionalgos[$calgo]
-                                                }                                                                       
-                                                $symalgost = $Subpckt.GetPreferredSymmetricAlgorithms()
-                                                foreach ($salgo in $symalgost)
-                                                {
-                                                    $PreferedSymAlgos += $symetricalgos[$salgo]
-                                                } 
-                                                $hashgost = $Subpckt.GetPreferredHashAlgorithms()
-                                                foreach ($halgo in $hashgost)
-                                                {
-                                                    $PreferedHashAlgos += $hashalgos[$halgo]
-                                                }
-                                            }
-                                            else
-                                            {
-                                                Write-Warning "Subkey $(($sig.KeyId |  foreach { $_.ToString("X2") }) -join '') has expired"
-                                            }
-                                        }
-                                    }
-                                    # Add some additional properties to the object
-                                    Add-Member -InputObject $kp -MemberType NoteProperty -Name "Id" -Value (($kp.KeyId  |  foreach { $_.ToString("X2") }) -join "")
-                                    Add-Member -InputObject $kp -MemberType NoteProperty -Name "UserIds" -Value ($kp.GetUserIds())
-                                    Add-Member -InputObject $kp -MemberType NoteProperty -Name "Fingerprint" -Value (($kp.GetFingerprint() |  foreach { $_.ToString("X2") }) -join "")
-                                    Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedSymmetric" -Value $PreferedSymAlgos
-                                    Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedHash" -Value $PreferedHashAlgos
-                                    Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedCompression" -Value $PreferedCompressionAlgos
-                                    Add-Member -InputObject $kp -MemberType NoteProperty -Name "ExpirationDate" -Value $ValidTime
-                                    $kp
-                                }
-                            }
+                        # Check if we got more than one keyring
+                        if ($keyring.length -gt 1)
+                        {
+                            Write-host "More than one keyring was found for the given UserId $($uid) use Key Id or more precise UserId"
+                            continue
                         }
                     }
                 }
@@ -722,82 +605,255 @@ function Get-PGPPublicKey
                 'All'
                 {
                     # Get all keyrings from the file
-                    foreach ($keyring in $PubKeyBundle.GetKeyRings())
+                    $keyrings = $PubKeyBundle.GetKeyRings()
+                }
+            }
+
+            foreach($keyring in $keyrings)
+            {
+                $PublicKeys = $keyring.GetPublicKeys()
+
+                $MasterPreferedHashAlgos        = @()
+                $MasterPreferedSymAlgos         = @()
+                $MasterPreferedCompressionAlgos = @()
+
+                # for checking subsignaturs
+                $MasterKeyID = 0
+
+                foreach($PublicKey in $PublicKeys)
+                {
+                    # save master key id
+                    if ($PublicKey.IsMasterKey)
                     {
-                        # Get only the public keys from the key ring 
-                        $PublicKeyCollection = $keyring.GetPublicKeys()
-                        foreach($kp in $PublicKeyCollection)
+                        $MasterKeyID = $PublicKey.KeyId
+                    }
+
+                    $KeyID = (($PublicKey.KeyId  |  foreach { $_.ToString("X2") }) -join "")
+
+                    # Check if the key is revoked
+                    if($PublicKey.IsRevoked() -and !($IncludeRevoked))
+                    {
+                        Write-host "Key with Id $($KeyID) is revoked, skipping key."
+                        Continue
+                    }
+
+                    # Check if the key is expired
+                    if (IsExpired($PublicKey) -and !($IncludeExpired))
+                    {
+                        Write-host "Key with Id $($KeyID) is expired, skipping key."
+                        Continue
+                    }
+
+                    # Select keys depending on their usage
+                    if (($KeyUsage -eq "Encryption") -and !(IsEnCryptionKey($PublicKey)))
+                    {
+                        Continue
+                    }
+
+                    if (($KeyUsage -eq "Signing") -and !(IsSigningKey($PublicKey)))
+                    {
+                        Continue
+                    }
+
+                    if (($KeyUsage -eq "Certification") -and !(IsCertificationKey($PublicKey)))
+                    {
+                        Continue
+                    }
+
+                    # We sort by creation time so the prefered algorithms are those from the most
+                    # recent subpacket as specified by the RFC 4880 5.2.3.3
+                    $PubKeySigs = $PublicKey.GetSignatures() | sort-object -Property CreationTime
+                    if (!($PubKeySigs))
+                    {
+                        Write-Verbose "No signatures where founf for $($KeyID)"
+                    }    
+                    $PreferedHashAlgos        = @()
+                    $PreferedSymAlgos         = @()
+                    $PreferedCompressionAlgos = @()
+                    foreach($signature in $PubKeySigs)
+                    {
+                        # Check that it is a self-signed signature either 0x18 or 0x10-0x13
+                        if ($signature.SignatureType -notin @(24,16, 17, 18, 19))
                         {
-                            if ($kp)
+                            Continue
+                        }
+
+                        # if the signature does not have subpackets we skip it since it will
+                        # not contain the info we want
+
+                        if (!($signature.HasSubpackets))
+                        {
+                            Continue
+                        }
+
+                        # Get the signature hashed subpackets and unhashed subpackets 
+                        $Hashed   = $signature.GetHashedSubPackets()
+                        $Unhashed = $signature.GetUnhashedSubPackets()
+
+                        # Check if signed by the master key or has not being signed
+                        if ("$($Hashed.GetIssuerKeyId())" -notin @("$($MasterKeyID)", "0"))
+                        {
+                            Continue
+                        }
+
+                        # if the signature is not signed by the key we skip it
+                
+                        # Get the preffered Symmetric Algorithm
+                        $prefsymm = $Hashed.GetPreferredSymmetricAlgorithms()
+                        if ($prefsymm -ne $null)
+                        {
+                            foreach ($salgo in $prefsymm)
                             {
-                                if ($EncryptionOnly)
+                                $PreferedSymAlgos += $symetricalgos[$salgo]
+                                if ($PublicKey.IsMasterKey)
                                 {
-                                    if (!($kp.IsEncryptionKey))
-                                    {
-                                        Write-verbose "Key was found but it is not an ecryption key."
-                                        continue
-                                    }
+                                    $MasterPreferedSymAlgos += $symetricalgos[$salgo]
                                 }
-                                $secpubsigs = $kp.GetSignatures()                                                                                                                                                                                                      
-                                $PreferedHashAlgos        = @()
-                                $PreferedSymAlgos         = @()
-                                $PreferedCompressionAlgos = @()
+                            } 
+                        }
 
-                                # RFC 4880 5.2.3.10.  Signature Expiration Time
-                                if ($kp.ValidDays -ne 0)
+                        # Get the prefered Hashing Algorithms
+                        $prefhash = $Hashed.GetPreferredHashAlgorithms()
+                        if ($prefhash -ne $null)
+                        {
+                            foreach ($halgo in $prefhash)
+                            {
+                                $PreferedHashAlgos += $hashalgos[$halgo]
+                                if ($PublicKey.IsMasterKey)
                                 {
-                                    $ValidTime = $kp.CreationTime.AddDays($kp.ValidDays)
+                                    $MasterPreferedHashAlgos += $hashalgos[$halgo]
                                 }
-                                else
-                                {
-                                    $ValidTime = 0
-                                }
-
-                                foreach($sig in $secpubsigs) 
-                                {
-                                    foreach($Subpckt in $sig.GetHashedSubPackets())
-                                    {
-                                        if ([datetime]::UtcNow -le $ValidTime -or $ValidTime -eq 0) 
-                                        {
-                                            Write-Verbose "Retrieving prefered Compression Algorithms"                                                                                                                                                                                          
-                                            $compalgos = $Subpckt.GetPreferredCompressionAlgorithms()
-                                            foreach ($calgo in $compalgos)
-                                            {
-                                                $PreferedCompressionAlgos += $compressionalgos[$calgo]
-                                            }
-                                            Write-Verbose "Retrieving prefered Symmetric Algorithms"                                                                            
-                                            $symalgost = $Subpckt.GetPreferredSymmetricAlgorithms()
-                                            foreach ($salgo in $symalgost)
-                                            {
-                                                $PreferedSymAlgos += $symetricalgos[$salgo]
-                                            }
-                                            Write-Verbose "Retrieving prefered Hash Algorithms"  
-                                            $hashgost = $Subpckt.GetPreferredHashAlgorithms()
-                                            foreach ($halgo in $hashgost)
-                                            {
-                                                $PreferedHashAlgos += $hashalgos[$halgo]
-                                            }
-                                        }
-                                        else
-                                        {
-                                            Write-Warning "Subkey $(($sig.KeyId |  foreach { $_.ToString("X2") }) -join '') has expired"
-                                        }
-                                    }
-                                }
-
-                                # Add some additional properties to the object
-                                Add-Member -InputObject $kp -MemberType NoteProperty -Name "Id" -Value (($kp.KeyId  |  foreach { $_.ToString("X2") }) -join "")
-                                Add-Member -InputObject $kp -MemberType NoteProperty -Name "UserIds" -Value ($kp.GetUserIds())
-                                Add-Member -InputObject $kp -MemberType NoteProperty -Name "Fingerprint" -Value (($kp.GetFingerprint() |  foreach { $_.ToString("X2") }) -join "")
-                                Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedSymmetric" -Value $PreferedSymAlgos
-                                Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedHash" -Value $PreferedHashAlgos
-                                Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedCompression" -Value $PreferedCompressionAlgos
-                                Add-Member -InputObject $kp -MemberType NoteProperty -Name "ExpirationDate" -Value $ValidTime
-                                $kp
                             }
-                                    
+                        }
+
+                        # Get the prefered Compression Algorithms
+                        $compalgos = $Hashed.GetPreferredCompressionAlgorithms()
+                        if ($compalgos -ne $null)
+                        {
+                            foreach ($calgo in $compalgos)
+                            {
+                                $PreferedCompressionAlgos += $compressionalgos[$calgo]
+                                if ($PublicKey.IsMasterKey)
+                                {
+                                    $MasterPreferedCompressionAlgos += $compressionalgos[$calgo]
+                                }
+                            }
+                        }
+
+
+                        # Get prefered Compression Algorithms 
+                        if (($PreferedHashAlgos.Length -eq 0) -or ($PreferedHashAlgos.Length -eq 0) -or ($PreferedCompressionAlgos.Length -eq 0))
+                        {
+                            Write-Verbose "Did not found prefered algorithms in hashed subpacket for $($KeyID)."
+                            Write-Verbose "Checking unhashed subpackets for prefered algorithms $($KeyID)."
+                            
+                            # Get the preffered Symmetric Algorithm
+                            $prefsymm = $Unhashed.GetPreferredSymmetricAlgorithms()
+                            if ($prefsymm -ne $null)
+                            {
+                                foreach ($salgo in $prefsymm)
+                                {
+                                    $PreferedSymAlgos += $symetricalgos[$salgo]
+                                    if ($PublicKey.IsMasterKey)
+                                    {
+                                        $MasterPreferedSymAlgos += $symetricalgos[$salgo]
+                                    }
+                                } 
+                            }
+
+                            # Get the prefered Hashing Algorithms
+                            $prefhash = $Unhashed.GetPreferredHashAlgorithms()
+                            if ($prefhash -ne $null)
+                            {
+                                foreach ($halgo in $prefhash)
+                                {
+                                    $PreferedHashAlgos += $hashalgos[$halgo]
+                                    if ($PublicKey.IsMasterKey)
+                                    {
+                                        $MasterPreferedHashAlgos += $hashalgos[$halgo]
+                                    }
+                                }
+                            }
+
+                            # Get the prefered Compression Algorithms
+                            $compalgos = $Unhashed.GetPreferredCompressionAlgorithms()
+                            if ($compalgos -ne $null)
+                            {
+                                foreach ($calgo in $compalgos)
+                                {
+                                    $PreferedCompressionAlgos += $compressionalgos[$calgo]
+                                    if ($PublicKey.IsMasterKey)
+                                    {
+                                        $MasterPreferedCompressionAlgos += $compressionalgos[$calgo]
+                                    }
+                                }
+                            }
+
+                            # If the the key does not have prefered algorithm we will use the master key algorithms
+                            # most implementations set their preferences on the master key at the very least and the 
+                            # master key is the first in the list of keys.
+                            if ($PreferedCompressionAlgos.Length -eq 0)
+                            {
+                                Write-Verbose "Could not find Compression Algorithms using Master Key values"
+                                $PreferedCompressionAlgos = $MasterPreferedCompressionAlgos
+                            }
+
+                            if ($PreferedSymAlgos.Length -eq 0)
+                            {
+                                Write-Verbose "Could not find Symmetric Algorithms using Master Key values"
+                                $PreferedSymAlgos = $MasterPreferedSymAlgos
+                            }
+
+                            if ($PreferedHashAlgos.Length -eq 0)
+                            {
+                                Write-Verbose "Could not find Hashing Algorithms using Master Key values"
+                                $PreferedHashAlgos = $MasterPreferedHashAlgos
+                            }
                         }
                     }
+
+                    # RFC 4880 5.2.3.10.  Signature Expiration Time
+                    if ($PublicKey.ValidDays -ne 0)
+                    {
+                        $ValidTime = $PublicKey.CreationTime.AddDays($PublicKey.ValidDays)
+                    }
+                    else
+                    {
+                        $ValidTime = 0
+                    }
+                    
+                    $Usage = @()
+                    if (IsEnCryptionKey($PublicKey))
+                    {
+                        $Usage += "Encryption"
+                    }
+
+                    if (IsSigningKey($PublicKey))
+                    {
+                        $Usage += "Signing"
+                    }
+
+                    if (IsAuthentication($PublicKey))
+                    {
+                        $Usage += "Authentication"
+                    }
+
+                    if (IsCertificationKey($PublicKey))
+                    {
+                        $Usage += "Certification"
+                    }
+
+                    # Add some additional properties to the object
+                    Add-Member -InputObject $PublicKey -MemberType NoteProperty -Name "Id" -Value (($PublicKey.KeyId  |  foreach { $_.ToString("X2") }) -join "")
+                    Add-Member -InputObject $PublicKey -MemberType NoteProperty -Name "UserIds" -Value ($PublicKey.GetUserIds())
+                    Add-Member -InputObject $PublicKey -MemberType NoteProperty -Name "Fingerprint" -Value (($PublicKey.GetFingerprint() |  foreach { $_.ToString("X2") }) -join "")
+                    Add-Member -InputObject $PublicKey -MemberType NoteProperty -Name "PreferedSymmetric" -Value $PreferedSymAlgos
+                    Add-Member -InputObject $PublicKey -MemberType NoteProperty -Name "PreferedHash" -Value $PreferedHashAlgos
+                    Add-Member -InputObject $PublicKey -MemberType NoteProperty -Name "PreferedCompression" -Value $PreferedCompressionAlgos
+                    Add-Member -InputObject $PublicKey -MemberType NoteProperty -Name "ExpirationDate" -Value $ValidTime
+                    Add-Member -InputObject $PublicKey -MemberType NoteProperty -Name "Usage" -Value $Usage
+                    $PublicKey
+
                 }
             }
         }
@@ -2322,6 +2378,8 @@ function Export-PGPSecretKey
 }
 
 
+# Helper function to check if a key is expired.
+
 function IsExpired($key)
 {
     if ($key -is [Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKey])
@@ -2358,3 +2416,216 @@ function IsExpired($key)
 
 }
 
+#Helper function to see if a key is an encryption one
+
+function IsEnCryptionKey($key)
+{
+    if ($key -is [Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKey])
+    {
+        $PublicKey = $key
+    }
+    elseif ($key -is [Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKey])
+    {
+        $PublicKey = $key.PublicKey
+
+    }
+
+    # Check first the info from Bouncy Castle
+    if (!$PublicKey.isEncryptionKey) {
+            return $false;
+    }
+
+    # If version of key is 3 we can deduce the purpose of the key from
+    # the key algorithm
+    if ($PublicKey.version -le 3) 
+    {
+         return $PublicKey.isEncryptionKey;
+    }
+
+    if ($PublicKey.isEncryptionKey)
+    {
+        return $true
+    }
+
+    # For version 4 keys it is more accurate to use the key flags as a
+    # way to determine the purpose. 
+    foreach($sig in $PublicKey.GetSignatures())
+    {
+        if (($PublicKey.IsMasterKey) -and ($PublicKey.KeyId -ne $sig.keyid))
+        {
+            continue
+        }
+
+        $hashed = $sig.GetHashedSubPackets()
+        if ($hashed -ne $null -and (($hashed.GetKeyFlags() -band 
+        [Org.BouncyCastle.Bcpg.Sig.KeyFlags]::EncryptStorage -bor 
+        [Org.BouncyCastle.Bcpg.Sig.KeyFlags]::Encrypt) -ne 0))
+         {
+            return $true
+         }
+
+         $unhashed = $sig.GetUnhashedSubPackets()
+        if ($unhashed -ne $null -and (($unhashed.GetKeyFlags() -band 
+        [Org.BouncyCastle.Bcpg.Sig.KeyFlags]::EncryptStorage -bor 
+        [Org.BouncyCastle.Bcpg.Sig.KeyFlags]::Encrypt) -ne 0))
+        {
+           return $true
+        }
+        return $false
+    }
+}
+
+
+# Helper function to see if a key can certify
+
+function IsCertificationKey($key)
+{
+    if ($key -is [Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKey])
+    {
+        $PublicKey = $key
+    }
+    elseif ($key -is [Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKey])
+    {
+        $PublicKey = $key.PublicKey
+
+    }
+
+    # if version 3 then it is always true
+    if ($PublicKey.version -le 3) 
+    {
+         return $true;
+    }
+
+    # For version 4 of the keys we check the key flags for best accuracy.
+    foreach($sig in $PublicKey.GetSignatures())
+    {
+        if (($PublicKey.IsMasterKey) -and ($PublicKey.KeyId -ne $sig.keyid))
+        {
+            continue
+        }
+
+        
+        $hashed = $sig.GetHashedSubPackets()
+        if ($hashed -ne $null -and (($hashed.GetKeyFlags() -band [Org.BouncyCastle.Bcpg.Sig.KeyFlags]::CertifyOther) -ne 0))
+        {
+            return $true
+        }
+
+        $unhashed = $sig.GetUnhashedSubPackets()
+        if ($unhashed -ne $null -and (($unhashed.GetKeyFlags() -band [Org.BouncyCastle.Bcpg.Sig.KeyFlags]::CertifyOther) -ne 0))
+        {
+            return $true
+        }
+
+        if ($PublicKey.Algorithm -eq "DSA" -and $hashed.GetKeyFlags() -eq 0 -and $unhashed.GetKeyFlags() -eq 0)
+        {
+            return $true
+        }
+        return $false
+    }
+}
+
+# Helper function to see if it is a signing key.
+
+function IsSigningKey($key)
+{
+    if ($key -is [Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKey])
+    {
+        $PublicKey = $key
+    }
+    elseif ($key -is [Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKey])
+    {
+        $PublicKey = $key.PublicKey
+
+    }
+
+    # if version 3 then it is always true
+    if ($PublicKey.version -le 3) 
+    {
+         return $true;
+    }
+
+    # For version 4 of the keys we check the key flags for best accuracy.
+    foreach($sig in $PublicKey.GetSignatures())
+    {
+        if (($PublicKey.IsMasterKey) -and ($PublicKey.KeyId -ne $sig.keyid))
+        {
+            continue
+        }
+
+        $hashed = $sig.GetHashedSubPackets()
+        if ($hashed -ne $null -and (($hashed.GetKeyFlags() -band [Org.BouncyCastle.Bcpg.Sig.KeyFlags]::SignData) -ne 0))
+        {
+            return $true
+        }
+
+        $unhashed = $sig.GetUnhashedSubPackets()
+        if ($unhashed -ne $null -and (($unhashed.GetKeyFlags() -band [Org.BouncyCastle.Bcpg.Sig.KeyFlags]::SignData) -ne 0))
+        {
+            return $true
+        }
+        
+
+        if ($PublicKey.Algorithm -eq "DSA" -and $hashed.GetKeyFlags() -eq 0 -and $unhashed.GetKeyFlags() -eq 0)
+        {
+            return $true
+        }
+
+        return $false
+    }
+}
+
+
+function IsAuthentication($key)
+{
+    if ($key -is [Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKey])
+    {
+        $PublicKey = $key
+    }
+    elseif ($key -is [Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKey])
+    {
+        $PublicKey = $key.PublicKey
+
+    }
+
+    # if version 3 then it is always false
+    if ($PublicKey.version -le 3) 
+    {
+         return $false;
+    }
+
+    # For version 4 of the keys we check the key flags for best accuracy.
+    foreach($sig in $PublicKey.GetSignatures())
+    {
+        if (($PublicKey.IsMasterKey) -and ($PublicKey.KeyId -ne $sig.keyid))
+        {
+            continue
+        }
+
+        $hashed = $sig.GetHashedSubPackets()
+
+        # Bouncy Castle does not have a constant for authentication flag as required in RFC 6091
+        if ($hashed -ne $null -and (($hashed.GetKeyFlags() -band [byte]0x20) -ne 0))
+        {
+            return $true
+        }
+
+        $unhashed = $sig.GetUnhashedSubPackets()
+        if ($unhashed -ne $null -and (($unhashed.GetKeyFlags() -band [byte]0x20) -ne 0))
+        {
+            return $true
+        }
+        
+
+        if ($PublicKey.Algorithm -eq "DSA" -and $hashed.GetKeyFlags() -eq 0 -and $unhashed.GetKeyFlags() -eq 0)
+        {
+            return $true
+        }
+
+        return $false
+    }
+}
+
+
+
+Export-ModuleMember "*-*"
