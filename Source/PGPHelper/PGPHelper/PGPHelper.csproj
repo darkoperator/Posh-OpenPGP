@@ -30,8 +30,17 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="BouncyCastle.CryptoExt">
-      <HintPath>..\..\..\Assembly\BouncyCastle.CryptoExt.dll</HintPath>
+    <Reference Include="crypto">
+      <HintPath>..\..\..\..\bc-csharp\crypto\bin\Debug\crypto.dll</HintPath>
+    </Reference>
+    <Reference Include="nunit.core">
+      <HintPath>..\..\..\..\bc-csharp\crypto\bin\Debug\nunit.core.dll</HintPath>
+    </Reference>
+    <Reference Include="nunit.core.interfaces">
+      <HintPath>..\..\..\..\bc-csharp\crypto\bin\Debug\nunit.core.interfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="nunit.framework">
+      <HintPath>..\..\..\..\bc-csharp\crypto\bin\Debug\nunit.framework.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -42,8 +51,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ClearSignedFileProcessor.cs" />
+    <Compile Include="DetachedSignedFileProcessor.cs" />
+    <Compile Include="KeyUtilities.cs" />
+    <Compile Include="PGPEncryptDecryptFile.cs" />
     <Compile Include="PGPHelper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Revocation.cs" />
+    <Compile Include="SymetricEncryptDecrypt.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

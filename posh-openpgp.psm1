@@ -235,7 +235,6 @@ function Get-PGPSecretKey
                     {
                         # Add some additional properties to the object
                         Add-Member -InputObject $kp -MemberType NoteProperty -Name "Id" -Value (($kp.KeyId  |  foreach { $_.ToString("X2") }) -join "")
-                        #Add-Member -InputObject $kp -MemberType NoteProperty -Name "UserIds" -Value ($kp.PublicKey.GetUserIds())
                         Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedSymmetric" -Value $PreferedSymAlgos
                         Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedHash" -Value $PreferedHashAlgos
                         Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedCompression" -Value $PreferedCompressionAlgos
@@ -302,7 +301,6 @@ function Get-PGPSecretKey
 
                             # Add some additional properties to the object
                             Add-Member -InputObject $kp -MemberType NoteProperty -Name "Id" -Value (($kp.KeyId  |  foreach { $_.ToString("X2") }) -join "")
-                            #Add-Member -InputObject $kp -MemberType NoteProperty -Name "UserIds" -Value ($kp.PublicKey.GetUserIds())
                             Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedSymmetric" -Value $PreferedSymAlgos
                             Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedHash" -Value $PreferedHashAlgos
                             Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedCompression" -Value $PreferedCompressionAlgos
@@ -372,7 +370,6 @@ function Get-PGPSecretKey
                                 }
                                 #Add some additional properties to the object
                                 Add-Member -InputObject $kp -MemberType NoteProperty -Name "Id" -Value (($kp.KeyId  |  foreach { $_.ToString("X2") }) -join "")
-                                #Add-Member -InputObject $kp -MemberType NoteProperty -Name "UserIds" -Value ($kp.PublicKey.GetUserIds())
                                 Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedSymmetric" -Value $PreferedSymAlgos
                                 Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedHash" -Value $PreferedHashAlgos
                                 Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedCompression" -Value $PreferedCompressionAlgos
@@ -525,7 +522,9 @@ function Get-PGPPublicKey
         }
 
         $symetricalgos = @{
-
+            13 = "Camellia256" # Not supported by BC implementation
+            12 = "Camellia192" # Not supported by BC implementation
+            11 = "Camellia128" # Not supported by BC implementation
             10 = "Towfish"  
             9 = "AES256"
             8 = "AES192"
@@ -610,6 +609,11 @@ function Get-PGPPublicKey
 
             foreach($keyring in $keyrings)
             {
+
+                # Check if the key is revoked
+  
+                
+
                 $PublicKeys = $keyring.GetPublicKeys()
 
                 $MasterPreferedHashAlgos        = @()
@@ -631,10 +635,9 @@ function Get-PGPPublicKey
 
                     $KeyID = (($PublicKey.KeyId  |  foreach { $_.ToString("X2") }) -join "")
 
-                    # Check if the key is revoked
                     if($PublicKey.IsRevoked() -and !($IncludeRevoked))
                     {
-                        Write-host "Key with Id $($KeyID) is revoked, skipping key."
+                        Write-Warning "Key with Id $((($PublicKey.KeyId  |  foreach { $_.ToString("X2") }) -join '')) is revoked, skipping key."
                         Continue
                     }
 
