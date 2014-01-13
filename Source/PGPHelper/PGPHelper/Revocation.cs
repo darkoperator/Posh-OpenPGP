@@ -13,6 +13,14 @@ namespace PGPHelper
 {
     public sealed class Revocation
     {
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="SecretKey"></param>
+        /// <param name="Passhrase"></param>
+        /// <param name="Reason"></param>
+        /// <param name="RevokeDescription"></param>
+        /// <param name="OutFile"></param>
         public static void GenerateCertificate(PgpSecretKey SecretKey, char[] Passhrase, string Reason, string RevokeDescription, string OutFile)
         {
             RevocationReasonTag RevokeReason;
@@ -91,6 +99,14 @@ namespace PGPHelper
         }
 
         
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="SecretKey"></param>
+        /// <param name="Passhrase"></param>
+        /// <param name="Reason"></param>
+        /// <param name="RevokeDescription"></param>
+        /// <returns></returns>
         public static string GenerateCertificate(PgpSecretKey SecretKey, char[] Passhrase, string Reason, string RevokeDescription)
         {
             RevocationReasonTag RevokeReason;
@@ -168,6 +184,14 @@ namespace PGPHelper
         }
 
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="SecretKey"></param>
+        /// <param name="Passhrase"></param>
+        /// <param name="Reason"></param>
+        /// <param name="RevokeDescription"></param>
+        /// <returns></returns>
         public static PgpSignature GenerateSignature(PgpSecretKey SecretKey, char[] Passhrase, string Reason, string RevokeDescription)
         {
             RevocationReasonTag RevokeReason;
