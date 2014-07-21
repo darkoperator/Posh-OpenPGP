@@ -29,7 +29,7 @@ function Protect-PGPEncryptedFile
        
         [Parameter(Mandatory=$false,
         ValueFromPipelineByPropertyName=$true)]
-        [ValidateSet('Uncompressed', "Zip",'Zlib','BZip2')]
+        [ValidateSet('Uncompressed', 'Zip','Zlib','BZip2')]
         [string]$Compression,
 
         [Parameter(Mandatory=$false,
@@ -42,15 +42,15 @@ function Protect-PGPEncryptedFile
 
         [Parameter(Mandatory=$false,
         ValueFromPipelineByPropertyName=$true)]
-        [ValidateSet("IDEA",
-            "3DES",
-            "CAST5",
-            "BlowFish",
-            "TowFish",
-            "DES",
-            "AES128",
-            "AES196",
-            "AES256")]
+        [ValidateSet('IDEA',
+            '3DES',
+            'CAST5',
+            'BlowFish',
+            'TowFish',
+            'DES',
+            'AES128',
+            'AES196',
+            'AES256')]
         [string]$SymmetricAlgorithm
     )
 
@@ -72,16 +72,16 @@ function Protect-PGPEncryptedFile
             # Check if we got more that one public key to work with.
             if ($PublicKey.length -eq 1)
             {
-                # if we only got one public key lets see if it has preffered compreesion algos
+                # if we only got one public key lets see if it has preferred compression algos
                 if ($PublicKey.PreferedCompression -ne 0)
                 {
-                    Write-Verbose "Using prefered compression algorithm $($PublicKey.PreferedCompression[0])."
+                    Write-Verbose "Using preferred compression algorithm $($PublicKey.PreferedCompression[0])."
                     $compression = $PublicKey.PreferedCompression[0]
                 }
                 else
                 {
-                    Write-Verbose "Key does not have predered compression algorithm usin Zip"
-                    $compression = "Zip"
+                    Write-Verbose 'Key does not have preferred compression algorithm usin Zip'
+                    $compression = 'Zip'
                 }
             }
             else
@@ -89,13 +89,13 @@ function Protect-PGPEncryptedFile
                 # If we have more than one key we use the settings of the first one
                 if ($PublicKey[0].PreferedCompression -ne 0)
                 {
-                    Write-Verbose "Using prefered compression algorithm $($PublicKey[0].PreferedCompression[0])."
+                    Write-Verbose "Using preferred compression algorithm $($PublicKey[0].PreferedCompression[0])."
                     $compression = $PublicKey[0].PreferedCompression[0]
                 }
                 else
                 {
-                    Write-Verbose "Key does not have predered compression algorithm usin Zip"
-                    $compression = "Zip"
+                    Write-Verbose 'Key does not have preferred compression algorithm usin Zip'
+                    $compression = 'Zip'
                 }
             }
         }
@@ -112,12 +112,12 @@ function Protect-PGPEncryptedFile
             {
                 if ($PublicKey.PreferedSymmetric -ne 0)
                 {
-                    Write-Verbose "Using prefered symmetric algorithm $($PublicKey.PreferedSymmetric[0])."
+                    Write-Verbose "Using preferred symmetric algorithm $($PublicKey.PreferedSymmetric[0])."
                     $SymmetricAlgorithm = $PublicKey.PreferedSymmetric[0]
                 }
                 else
                 {
-                    Write-Verbose "Key does not have predered symmetric algorithm usin AES256"
+                    Write-Verbose 'Key does not have preferred symmetric algorithm using AES256'
                     $SymmetricAlgorithm = 'AES256'
                 }
             }
@@ -125,12 +125,12 @@ function Protect-PGPEncryptedFile
             {
                 if ($PublicKey[0].PreferedSymmetric -ne 0)
                 {
-                    Write-Verbose "Using prefered symmetric algorithm $($PublicKey[0].PreferedSymmetric[0])."
+                    Write-Verbose "Using preferred symmetric algorithm $($PublicKey[0].PreferedSymmetric[0])."
                     $SymmetricAlgorithm = $PublicKey[0].PreferedSymmetric[0]
                 }
                 else
                 {
-                    Write-Verbose "Key does not have predered symmetric algorithm usin AES256"
+                    Write-Verbose 'Key does not have preferred symmetric algorithm using AES256'
                     $SymmetricAlgorithm = 'AES256'
                 }
             }
@@ -182,7 +182,7 @@ function Unprotect-PGPEncryptedFile
         [Parameter(Mandatory=$true,
         ValueFromPipelineByPropertyName=$true,
         Position=3,
-        HelpMessage = "Secure String representing the passphase for the key.")]
+        HelpMessage = 'Secure String representing the pass-phase for the key.')]
         [securestring]$PassPhrase
     )
 
@@ -239,8 +239,8 @@ function Protect-PGPSymmetricEncryptedFile
        
         [Parameter(Mandatory=$false,
         ValueFromPipelineByPropertyName=$true)]
-        [ValidateSet('Uncompressed', "Zip",'Zlib','BZip2')]
-        [string]$Compression = "Zip",
+        [ValidateSet('Uncompressed', 'Zip','Zlib','BZip2')]
+        [string]$Compression = 'Zip',
 
         [Parameter(Mandatory=$false,
         ValueFromPipelineByPropertyName=$true)]
@@ -248,15 +248,15 @@ function Protect-PGPSymmetricEncryptedFile
 
         [Parameter(Mandatory=$false,
         ValueFromPipelineByPropertyName=$true)]
-        [ValidateSet("IDEA",
-            "3DES",
-            "CAST5",
-            "BlowFish",
-            "TowFish",
-            "DES",
-            "AES128",
-            "AES196",
-            "AES256")]
+        [ValidateSet('IDEA',
+            '3DES',
+            'CAST5',
+            'BlowFish',
+            'TowFish',
+            'DES',
+            'AES128',
+            'AES196',
+            'AES256')]
         [string]$SymmetricAlgorithm = 'AES256'
     )
 

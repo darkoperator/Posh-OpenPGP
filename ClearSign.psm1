@@ -17,7 +17,7 @@ PS C:\> $param = @{
     UseSsl = $true
     Credential  = $creds
     From = 'carlos_perez@darkoperator.com'
-    To = 'cperezotero@gmail.com.com'
+    To = 'cperezotero@gmail.com'
     Subject = 'My Secret Message'
     Body = "$($message -join "`r`n")"
 }
@@ -39,7 +39,7 @@ function New-PGPClearSignature
         [Parameter(Mandatory=$true,
         ValueFromPipelineByPropertyName=$true,
         ParameterSetName='File')]
-        [ValidateScript({Test-Path $_})]
+        [ValidateScript({Test-Path -Path $_})]
         [string]$File,
 
         [Parameter(Mandatory=$true,
@@ -74,7 +74,7 @@ function New-PGPClearSignature
         }
         else
         {
-            $outstream = New-Object System.IO.MemoryStream
+            $outstream = New-Object -TypeName System.IO.MemoryStream
         }
 
         switch ($PsCmdlet.ParameterSetName) 
@@ -105,7 +105,7 @@ function New-PGPClearSignature
         }
         else
         {
-            Write-Verbose "Using prefered hash algorithm $($SecretKey.PreferedHash[0])"
+            Write-Verbose "Using preferred hash algorithm $($SecretKey.PreferedHash[0])"
             $HashAlgorithm = $SecretKey.PreferedHash[0]
         }
 

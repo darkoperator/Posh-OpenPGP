@@ -104,26 +104,26 @@ function Get-PGPSecretKey
     (
         # Param1 help description
         [Parameter(Mandatory=$true,
-        ValueFromPipelineByPropertyName=$true,
-        Position=0)]
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=0)]
         [ValidateScript({Test-Path $_})]
         [string]$SecretKeyBundle,
 
         [Parameter(Mandatory=$false,
-        ValueFromPipelineByPropertyName=$true,
-        Position=2)]
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=2)]
         [Parameter(ParameterSetName='Id')]
         [string]$Id,
 
         [Parameter(Mandatory=$false,
-        ValueFromPipelineByPropertyName=$true,
-        Position=2)]
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=2)]
         [Parameter(ParameterSetName='UserId')]
         $UserId,
 
         [Parameter(Mandatory=$false,
-        ValueFromPipelineByPropertyName=$true,
-        Position=2)]
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=2)]
         [Parameter(ParameterSetName='All')]
         [switch]$All = $true
 
@@ -132,37 +132,37 @@ function Get-PGPSecretKey
     Begin
     {
         $compressionalgos = @{
-            1 = "Zip"
-            2 = "ZLib"
-            3 = "Bzip2"
+            1 = 'Zip'
+            2 = 'ZLib'
+            3 = 'Bzip2'
         }
 
         $symetricalgos = @{
 
-            10 = "Towfish"  
-            9 = "AES256"
-            8 = "AES192"
-            7 = "AES128"
-            6 = "DES"
-            5 = "SAFER"
-            4 = "Blowfish"
-            3 = "CAST5"
-            2 = "3DES"
-            1 = "IDEA"
+            10 = 'Towfish'  
+            9 = 'AES256'
+            8 = 'AES192'
+            7 = 'AES128'
+            6 = 'DES'
+            5 = 'SAFER'
+            4 = 'Blowfish'
+            3 = 'CAST5'
+            2 = '3DES'
+            1 = 'IDEA'
         }
 
         $hashalgos = @{
-            1 = "MD5"
-            2 = "SHA1"
-            3 = "RipeMD160"
-            4 = "DoubleSha"
-            5 = "MD2"
-            6 = "Tiger192"
-            7 = "Haval5pass160"
-            8 = "Sha256"
-            9 = "Sha384"
-            10 = "Sha512"
-            11 = "Sha224"
+            1 = 'MD5'
+            2 = 'SHA1'
+            3 = 'RipeMD160'
+            4 = 'DoubleSha'
+            5 = 'MD2'
+            6 = 'Tiger192'
+            7 = 'Haval5pass160'
+            8 = 'Sha256'
+            9 = 'Sha384'
+            10 = 'Sha512'
+            11 = 'Sha224'
         }
     }
     Process
@@ -181,7 +181,7 @@ function Get-PGPSecretKey
             switch ($PsCmdlet.ParameterSetName) 
             {
                 'Id' {
-                    $idlongformat = ($Id | foreach {[Convert]::ToInt64($_,16)})  -join ""
+                    $idlongformat = ($Id | foreach {[Convert]::ToInt64($_,16)})  -join ''
                     $kp = $PrivKeyBundle.GetSecretKey($idlongformat)
                     $secpubsigs = $kp.PublicKey.GetSignatures()                                                                                                                                                                                                      
                     $PreferedHashAlgos        = @()
@@ -225,7 +225,7 @@ function Get-PGPSecretKey
                                 }
                                 else
                                 {
-                                    Write-Warning "Subkey $(($sig.KeyId |  foreach { $_.ToString("X2") }) -join '') has expired"
+                                    Write-Warning "Subkey $(($sig.KeyId |  foreach { $_.ToString('X2') }) -join '') has expired"
                                 }
                             }
                         }
@@ -234,11 +234,11 @@ function Get-PGPSecretKey
                     if ($kp)
                     {
                         # Add some additional properties to the object
-                        Add-Member -InputObject $kp -MemberType NoteProperty -Name "Id" -Value (($kp.KeyId  |  foreach { $_.ToString("X2") }) -join "")
-                        Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedSymmetric" -Value $PreferedSymAlgos
-                        Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedHash" -Value $PreferedHashAlgos
-                        Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedCompression" -Value $PreferedCompressionAlgos
-                        Add-Member -InputObject $kp -MemberType NoteProperty -Name "ExpirationDate" -Value $ValidTime
+                        Add-Member -InputObject $kp -MemberType NoteProperty -Name 'Id' -Value (($kp.KeyId  |  foreach { $_.ToString('X2') }) -join '')
+                        Add-Member -InputObject $kp -MemberType NoteProperty -Name 'PreferedSymmetric' -Value $PreferedSymAlgos
+                        Add-Member -InputObject $kp -MemberType NoteProperty -Name 'PreferedHash' -Value $PreferedHashAlgos
+                        Add-Member -InputObject $kp -MemberType NoteProperty -Name 'PreferedCompression' -Value $PreferedCompressionAlgos
+                        Add-Member -InputObject $kp -MemberType NoteProperty -Name 'ExpirationDate' -Value $ValidTime
                         $kp
                     }
                 }
@@ -290,7 +290,7 @@ function Get-PGPSecretKey
                                     }
                                     else
                                     {
-                                        Write-Warning "Subkey $(($sig.KeyId |  foreach { $_.ToString("X2") }) -join '') has expired"
+                                        Write-Warning "Subkey $(($sig.KeyId |  foreach { $_.ToString('X2') }) -join '') has expired"
                                     }
                                 }
                             }
@@ -300,11 +300,11 @@ function Get-PGPSecretKey
                         {
 
                             # Add some additional properties to the object
-                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "Id" -Value (($kp.KeyId  |  foreach { $_.ToString("X2") }) -join "")
-                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedSymmetric" -Value $PreferedSymAlgos
-                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedHash" -Value $PreferedHashAlgos
-                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedCompression" -Value $PreferedCompressionAlgos
-                            Add-Member -InputObject $kp -MemberType NoteProperty -Name "ExpirationDate" -Value $ValidTime
+                            Add-Member -InputObject $kp -MemberType NoteProperty -Name 'Id' -Value (($kp.KeyId  |  foreach { $_.ToString('X2') }) -join '')
+                            Add-Member -InputObject $kp -MemberType NoteProperty -Name 'PreferedSymmetric' -Value $PreferedSymAlgos
+                            Add-Member -InputObject $kp -MemberType NoteProperty -Name 'PreferedHash' -Value $PreferedHashAlgos
+                            Add-Member -InputObject $kp -MemberType NoteProperty -Name 'PreferedCompression' -Value $PreferedCompressionAlgos
+                            Add-Member -InputObject $kp -MemberType NoteProperty -Name 'ExpirationDate' -Value $ValidTime
                             $kp
                         }
                     }
@@ -363,17 +363,17 @@ function Get-PGPSecretKey
                                             }
                                             else
                                             {
-                                                Write-Warning "Subkey $(($sig.KeyId |  foreach { $_.ToString("X2") }) -join '') has expired"
+                                                Write-Warning "Subkey $(($sig.KeyId |  foreach { $_.ToString('X2') }) -join '') has expired"
                                             }
                                         }
                                     }
                                 }
                                 #Add some additional properties to the object
-                                Add-Member -InputObject $kp -MemberType NoteProperty -Name "Id" -Value (($kp.KeyId  |  foreach { $_.ToString("X2") }) -join "")
-                                Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedSymmetric" -Value $PreferedSymAlgos
-                                Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedHash" -Value $PreferedHashAlgos
-                                Add-Member -InputObject $kp -MemberType NoteProperty -Name "PreferedCompression" -Value $PreferedCompressionAlgos
-                                Add-Member -InputObject $kp -MemberType NoteProperty -Name "ExpirationDate" -Value $ValidTime
+                                Add-Member -InputObject $kp -MemberType NoteProperty -Name 'Id' -Value (($kp.KeyId  |  foreach { $_.ToString('X2') }) -join '')
+                                Add-Member -InputObject $kp -MemberType NoteProperty -Name 'PreferedSymmetric' -Value $PreferedSymAlgos
+                                Add-Member -InputObject $kp -MemberType NoteProperty -Name 'PreferedHash' -Value $PreferedHashAlgos
+                                Add-Member -InputObject $kp -MemberType NoteProperty -Name 'PreferedCompression' -Value $PreferedCompressionAlgos
+                                Add-Member -InputObject $kp -MemberType NoteProperty -Name 'ExpirationDate' -Value $ValidTime
                                 $kp
                             }
                             else
@@ -388,13 +388,13 @@ function Get-PGPSecretKey
         catch
         {
             $error_message =  $_.Exception.Message
-            if ($error_message -like "*PgpPublicKeyRing expected*")
+            if ($error_message -like '*PgpPublicKeyRing expected*')
             {
-                throw "Key specified is not a public key."
+                throw 'Key specified is not a public key.'
             }
-            elseif ($error_message -like "*unsupported version*")
+            elseif ($error_message -like '*unsupported version*')
             {
-                throw "File specified is not a OpenPGP Key file."
+                throw 'File specified is not a OpenPGP Key file.'
             }
             else
             {
@@ -477,78 +477,78 @@ function Get-PGPPublicKey
     Param
     (
         [Parameter(Mandatory=$true,
-        ValueFromPipelineByPropertyName=$true,
-        Position=0)]
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=0)]
         [ValidateScript({Test-Path $_})]
         [string]$PublicKeyBundle,
 
         [Parameter(Mandatory=$false,
-        ValueFromPipelineByPropertyName=$true,
-        Position=2)]
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=2)]
         [Parameter(ParameterSetName='Id')]
         [string]$Id,
 
         [Parameter(Mandatory=$false,
-        ValueFromPipelineByPropertyName=$true,
-        Position=2)]
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=2)]
         [Parameter(ParameterSetName='UserId')]
         [string[]]$UserId,
 
         [Parameter(Mandatory=$false,
-        ValueFromPipelineByPropertyName=$true,
-        Position=2)]
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=2)]
         [Parameter(ParameterSetName='All')]
         [switch]$All,
 
         [Parameter(Mandatory=$false,
-        ValueFromPipelineByPropertyName=$true)]
+                   ValueFromPipelineByPropertyName=$true)]
         [switch]$EncryptionOnly,
 
         [Parameter(Mandatory=$false,
-        ValueFromPipelineByPropertyName=$true)]
+                   ValueFromPipelineByPropertyName=$true)]
         [switch]$IncludeRevoked,
 
         [Parameter(Mandatory=$false,
-        ValueFromPipelineByPropertyName=$true)]
+                   ValueFromPipelineByPropertyName=$true)]
         [switch]$IncludeExpired
     )
 
     Begin
     {
         $compressionalgos = @{
-            1 = "Zip"
-            2 = "ZLib"
-            3 = "Bzip2"
+            1 = 'Zip'
+            2 = 'ZLib'
+            3 = 'Bzip2'
         }
 
         $symetricalgos = @{
-            13 = "Camellia256" # Not supported by BC implementation
-            12 = "Camellia192" # Not supported by BC implementation
-            11 = "Camellia128" # Not supported by BC implementation
-            10 = "Towfish"  
-            9 = "AES256"
-            8 = "AES192"
-            7 = "AES128"
-            6 = "DES"
-            5 = "SAFER"
-            4 = "Blowfish"
-            3 = "CAST5"
-            2 = "3DES"
-            1 = "IDEA"
+            13 = 'Camellia256' # Not supported by BC implementation
+            12 = 'Camellia192' # Not supported by BC implementation
+            11 = 'Camellia128' # Not supported by BC implementation
+            10 = 'Towfish'  
+            9 = 'AES256'
+            8 = 'AES192'
+            7 = 'AES128'
+            6 = 'DES'
+            5 = 'SAFER'
+            4 = 'Blowfish'
+            3 = 'CAST5'
+            2 = '3DES'
+            1 = 'IDEA'
         }
 
         $hashalgos = @{
-            1 = "MD5"
-            2 = "SHA1"
-            3 = "RipeMD160"
-            4 = "DoubleSha"
-            5 = "MD2"
-            6 = "Tiger192"
-            7 = "Haval5pass160"
-            8 = "Sha256"
-            9 = "Sha384"
-            10 = "Sha512"
-            11 = "Sha224"
+            1 = 'MD5'
+            2 = 'SHA1'
+            3 = 'RipeMD160'
+            4 = 'DoubleSha'
+            5 = 'MD2'
+            6 = 'Tiger192'
+            7 = 'Haval5pass160'
+            8 = 'Sha256'
+            9 = 'Sha384'
+            10 = 'Sha512'
+            11 = 'Sha224'
         }
     }
     Process
@@ -568,7 +568,7 @@ function Get-PGPPublicKey
 
                 'Id'
                 {
-                    $idlongformat = ($Id | foreach {[Convert]::ToInt64($_,16)})  -join ""
+                    $idlongformat = ($Id | foreach {[Convert]::ToInt64($_,16)})  -join ''
 
                     $keyrings = $PubKeyBundle.GetPublicKeyRing($idlongformat)
                     if (!($keyrings))
@@ -633,11 +633,11 @@ function Get-PGPPublicKey
                         $MasterUserIDs = $PublicKey.GetUserIds()
                     }
 
-                    $KeyID = (($PublicKey.KeyId  |  foreach { $_.ToString("X2") }) -join "")
+                    $KeyID = (($PublicKey.KeyId  |  foreach { $_.ToString('X2') }) -join '')
 
                     if($PublicKey.IsRevoked() -and !($IncludeRevoked))
                     {
-                        Write-Warning "Key with Id $((($PublicKey.KeyId  |  foreach { $_.ToString("X2") }) -join '')) is revoked, skipping key."
+                        Write-Warning "Key with Id $((($PublicKey.KeyId  |  foreach { $_.ToString('X2') }) -join '')) is revoked, skipping key."
                         Continue
                     }
 
@@ -685,7 +685,7 @@ function Get-PGPPublicKey
                         $Unhashed = $signature.GetUnhashedSubPackets()
 
                         # Check if signed by the master key or has not being signed
-                        if ("$($Hashed.GetIssuerKeyId())" -notin @("$($MasterKeyID)", "0"))
+                        if ("$($Hashed.GetIssuerKeyId())" -notin @("$($MasterKeyID)", '0'))
                         {
                             Continue
                         }
@@ -788,19 +788,19 @@ function Get-PGPPublicKey
                             # master key is the first in the list of keys.
                             if ($PreferedCompressionAlgos.Length -eq 0)
                             {
-                                Write-Verbose "Could not find Compression Algorithms using Master Key values"
+                                Write-Verbose 'Could not find Compression Algorithms using Master Key values'
                                 $PreferedCompressionAlgos = $MasterPreferedCompressionAlgos
                             }
 
                             if ($PreferedSymAlgos.Length -eq 0)
                             {
-                                Write-Verbose "Could not find Symmetric Algorithms using Master Key values"
+                                Write-Verbose 'Could not find Symmetric Algorithms using Master Key values'
                                 $PreferedSymAlgos = $MasterPreferedSymAlgos
                             }
 
                             if ($PreferedHashAlgos.Length -eq 0)
                             {
-                                Write-Verbose "Could not find Hashing Algorithms using Master Key values"
+                                Write-Verbose 'Could not find Hashing Algorithms using Master Key values'
                                 $PreferedHashAlgos = $MasterPreferedHashAlgos
                             }
                         }
@@ -819,22 +819,22 @@ function Get-PGPPublicKey
                     $Usage = @()
                     if (IsEnCryptionKey($PublicKey))
                     {
-                        $Usage += "Encryption"
+                        $Usage += 'Encryption'
                     }
 
                     if (IsSigningKey($PublicKey))
                     {
-                        $Usage += "Signing"
+                        $Usage += 'Signing'
                     }
 
                     if (IsAuthentication($PublicKey))
                     {
-                        $Usage += "Authentication"
+                        $Usage += 'Authentication'
                     }
 
                     if (IsCertificationKey($PublicKey))
                     {
-                        $Usage += "Certification"
+                        $Usage += 'Certification'
                     }
 
 
@@ -852,14 +852,14 @@ function Get-PGPPublicKey
                     }
 
                     # Add some additional properties to the object
-                    Add-Member -InputObject $PublicKey -MemberType NoteProperty -Name "Id" -Value (($PublicKey.KeyId  |  foreach { $_.ToString("X2") }) -join "")
-                    Add-Member -InputObject $PublicKey -MemberType NoteProperty -Name "UserIds" -Value $PublickkeyUserIds
-                    Add-Member -InputObject $PublicKey -MemberType NoteProperty -Name "Fingerprint" -Value (($PublicKey.GetFingerprint() |  foreach { $_.ToString("X2") }) -join "")
-                    Add-Member -InputObject $PublicKey -MemberType NoteProperty -Name "PreferedSymmetric" -Value $PreferedSymAlgos
-                    Add-Member -InputObject $PublicKey -MemberType NoteProperty -Name "PreferedHash" -Value $PreferedHashAlgos
-                    Add-Member -InputObject $PublicKey -MemberType NoteProperty -Name "PreferedCompression" -Value $PreferedCompressionAlgos
-                    Add-Member -InputObject $PublicKey -MemberType NoteProperty -Name "ExpirationDate" -Value $ValidTime
-                    Add-Member -InputObject $PublicKey -MemberType NoteProperty -Name "Usage" -Value $Usage
+                    Add-Member -InputObject $PublicKey -MemberType NoteProperty -Name 'Id' -Value (($PublicKey.KeyId  |  foreach { $_.ToString('X2') }) -join '')
+                    Add-Member -InputObject $PublicKey -MemberType NoteProperty -Name 'UserIds' -Value $PublickkeyUserIds
+                    Add-Member -InputObject $PublicKey -MemberType NoteProperty -Name 'Fingerprint' -Value (($PublicKey.GetFingerprint() |  foreach { $_.ToString('X2') }) -join '')
+                    Add-Member -InputObject $PublicKey -MemberType NoteProperty -Name 'PreferedSymmetric' -Value $PreferedSymAlgos
+                    Add-Member -InputObject $PublicKey -MemberType NoteProperty -Name 'PreferedHash' -Value $PreferedHashAlgos
+                    Add-Member -InputObject $PublicKey -MemberType NoteProperty -Name 'PreferedCompression' -Value $PreferedCompressionAlgos
+                    Add-Member -InputObject $PublicKey -MemberType NoteProperty -Name 'ExpirationDate' -Value $ValidTime
+                    Add-Member -InputObject $PublicKey -MemberType NoteProperty -Name 'Usage' -Value $Usage
                     $PublicKey
 
                 }
@@ -868,13 +868,13 @@ function Get-PGPPublicKey
         catch
         {
             $error_message =  $_.Exception.Message
-            if ($error_message -like "*PgpPublicKeyRing expected*")
+            if ($error_message -like '*PgpPublicKeyRing expected*')
             {
-                throw "Key specified is not a public key."
+                throw 'Key specified is not a public key.'
             }
-            elseif ($error_message -like "*unsupported version*")
+            elseif ($error_message -like '*unsupported version*')
             {
-                throw "File specified is not a OpenPGP Key file."
+                throw 'File specified is not a OpenPGP Key file.'
             }
             else
             {
@@ -910,53 +910,53 @@ function New-PGPRSAKeyPair
     Param
     (
         [Parameter(Mandatory=$true,
-        ValueFromPipelineByPropertyName=$true,
-        Position=0,
-        HelpMessage = "Path to where to save the key pair.")]
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=0,
+                   HelpMessage = 'Path to where to save the key pair.')]
         [string]$Path,
 
         [Parameter(Mandatory=$true,
-        ValueFromPipelineByPropertyName=$true,
-        Position=1,
-        HelpMessage = "Identity of user of the key. (Example name of the user)")]
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=1,
+                   HelpMessage = 'Identity of user of the key. (Example name of the user)')]
         [string]$Identity,
 
         [Parameter(Mandatory=$true,
-        ValueFromPipelineByPropertyName=$true,
-        Position=2,
-        HelpMessage = "Email address to associate key to.")]
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=2,
+                   HelpMessage = 'Email address to associate key to.')]
         [string]$Email,
 
         [Parameter(Mandatory=$true,
-        ValueFromPipelineByPropertyName=$true,
-        Position=3,
-        HelpMessage = "Secure String representing the passphase for the key.")]
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=3,
+                   HelpMessage = 'Secure String representing the passphase for the key.')]
         [securestring]$PassPhrase,
 
         [Parameter(Mandatory=$false,
-        ValueFromPipelineByPropertyName=$true)]
-        [bool]$Armor = $false,
+                   ValueFromPipelineByPropertyName=$true)]
+        [switch]$Armor,
 
         [Parameter(Mandatory=$false,
-        ValueFromPipelineByPropertyName=$true)]
-        [ValidateSet("IDEA",
-            "3DES",
-            "CAST5",
-            "BlowFish",
-            "TowFish",
-            "DES",
-            "AES128",
-            "AES196",
-            "AES256")]
-        [string]$SymmetricAlgorithm = "CAST5",
+                   ValueFromPipelineByPropertyName=$true)]
+        [ValidateSet('IDEA',
+            '3DES',
+            'CAST5',
+            'BlowFish',
+            'TowFish',
+            'DES',
+            'AES128',
+            'AES196',
+            'AES256')]
+        [string]$SymmetricAlgorithm = 'CAST5',
 
         [Parameter(Mandatory=$false,
-        ValueFromPipelineByPropertyName=$true)]
+                   ValueFromPipelineByPropertyName=$true)]
         [ValidateSet(1024,2048, 3072, 4096)]
         [int]$KeySize = 2048,
 
         [Parameter(Mandatory=$false,
-        ValueFromPipelineByPropertyName=$true)]
+                   ValueFromPipelineByPropertyName=$true)]
         [datetime]$ExpirationDate
     )
 
@@ -981,15 +981,15 @@ function New-PGPRSAKeyPair
         }
         else
         {
-            throw "The path specified does not exist!"
+            throw 'The path specified does not exist!'
         }
     }
     Process
     {
         
-        $Generator = [Org.BouncyCastle.Security.GeneratorUtilities]::GetKeyPairGenerator("RSA")
+        $Generator = [Org.BouncyCastle.Security.GeneratorUtilities]::GetKeyPairGenerator('RSA')
         # Public exponent of 65537
-        $BI = New-Object Org.BouncyCastle.Math.BigInteger -ArgumentList "10001",16
+        $BI = New-Object Org.BouncyCastle.Math.BigInteger -ArgumentList '10001',16
         $SecureRand =  New-Object Org.BouncyCastle.Security.SecureRandom
         $RSAOps = New-Object Org.BouncyCastle.Crypto.Parameters.RsaKeyGenerationParameters -ArgumentList $BI,$SecureRand,$KeySize,25
         $Generator.Init($RSAOps)
@@ -1011,7 +1011,7 @@ function New-PGPRSAKeyPair
         
         # Generate a key pair with default certification for use for encryption, decryption, signing and authentication
         $SignatureType = [Org.BouncyCastle.Bcpg.OpenPgp.PgpSignature]::DefaultCertification
-        Write-Verbose "Generating key pair."
+        Write-Verbose 'Generating key pair.'
         $seckey = New-Object Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKey -ArgumentList $SignatureType,
             ([Org.BouncyCastle.Bcpg.PublicKeyAlgorithmTag]::RsaGeneral), 
             $keyparams.public,
@@ -1024,7 +1024,7 @@ function New-PGPRSAKeyPair
             $null,
             $SecureRand
             
-        $keyID = (($seckey.KeyId | foreach { $_.ToString("X2") }) -join "")
+        $keyID = (($seckey.KeyId | foreach { $_.ToString('X2') }) -join '')
         if ($Armor)
         {
             $SecretKey = "$($keypath)\$($keyID)_sec.asc"
@@ -1052,25 +1052,25 @@ function New-PGPRSAKeyPair
         if ($Armor)
         {
             $SecKey.Encode($SecretStream_armor)
-            sleep(2)
+            Start-Sleep(2)
             $SecretStream_armor.close()
             $SecretStream.Close()
 
-            Write-Verbose "Generating public key"
+            Write-Verbose 'Generating public key'
             $SecKey.PublicKey.encode($PublicStream_armor)
-            sleep(2)
+            Start-Sleep(2)
             $PublicStream_armor.close()
             $PublicStream.Close()
         }
         else
         {
             $SecKey.Encode($SecretStream)
-            sleep(2)
+            Start-Sleep(2)
             $SecretStream.Close()
 
-            Write-Verbose "Generating public key"
+            Write-Verbose 'Generating public key'
             $SecKey.PublicKey.encode($PublicStream)
-            sleep(2)
+            Start-Sleep(2)
             $PublicStream.Close()
         }
 
@@ -1085,8 +1085,8 @@ function New-PGPRSAKeyPair
 .Synopsis
    Generates a OpenPGP DSA/El Gamal key pair.
 .DESCRIPTION
-   Generates a new DSA/El Gamal OpenPGP Key pair. The keys default Size is of 2048 bits for El Gamal and 1024bits for DSA
-   (Do to current limitations of the library not supporting DSA2 for key generation only 1024bit keys for DSA can be made)encrypted with AES-256.
+   Generates a new DSA/El Gamal OpenPGP Key pair. The keys default Size is of 2048 bits for El Gamal and 2048 bits for DSA
+   encrypted with AES-256.
    The key has a Symetric Algorithm preference of  AES 256, AES 192, AES 128, TowFish, CAST5 and 3DES.
    The key has a Hashing Algorithum preference of SHA 256, SHA 384, SHA 512 and RipeMD160. It supports
    compression for ZLib, Zip and BZip2.
@@ -1111,54 +1111,60 @@ function New-PGPDsaElGamalKeyPair
     Param
     (
         [Parameter(Mandatory=$true,
-        ValueFromPipelineByPropertyName=$true,
-        Position=0,
-        HelpMessage = "Path to where to save the key pair.")]
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=0,
+                   HelpMessage = 'Path to where to save the key pair.')]
         [string]$Path,
 
         [Parameter(Mandatory=$true,
-        ValueFromPipelineByPropertyName=$true,
-        Position=1,
-        HelpMessage = "Identity of user of the key. (Example name of the user)")]
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=1,
+                   HelpMessage = 'Identity of user of the key. (Example name of the user)')]
         [string]$Identity,
 
         [Parameter(Mandatory=$true,
-        ValueFromPipelineByPropertyName=$true,
-        Position=2,
-        HelpMessage = "Email address to associate key to.")]
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=2,
+                   HelpMessage = 'Email address to associate key to.')]
         [string]$Email,
 
         [Parameter(Mandatory=$true,
-        ValueFromPipelineByPropertyName=$true,
-        Position=3,
-        HelpMessage = "Secure String representing the passphase for the key.")]
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=3,
+                   HelpMessage = 'Secure String representing the passphase for the key.')]
         [securestring]$PassPhrase,
 
         [Parameter(Mandatory=$false,
-        ValueFromPipelineByPropertyName=$true)]
-        [bool]$Armor = $false,
+                   ValueFromPipelineByPropertyName=$true)]
+        [switch]$Armor = $false,
 
         [Parameter(Mandatory=$false,
-        ValueFromPipelineByPropertyName=$true)]
-        [ValidateSet("IDEA",
-            "3DES",
-            "CAST5",
-            "BlowFish",
-            "TowFish",
-            "DES",
-            "AES128",
-            "AES196",
-            "AES256")]
-        [string]$SymmetricAlgorithm = "AES256",
+                   ValueFromPipelineByPropertyName=$true)]
+        [ValidateSet('IDEA',
+                     '3DES',
+                     'CAST5',
+                     'BlowFish',
+                     'TowFish',
+                     'DES',
+                     'AES128',
+                     'AES196',
+                     'AES256')]
+        [string]$SymmetricAlgorithm = 'AES256',
 
         [Parameter(Mandatory=$false,
-        ValueFromPipelineByPropertyName=$true)]
+                   ValueFromPipelineByPropertyName=$true)]
         [ValidateSet(1024, 2048, 3072, 4096)]
         [int]$ElGamalKeySize = 2048,
 
         [Parameter(Mandatory=$false,
-        ValueFromPipelineByPropertyName=$true)]
+                   ValueFromPipelineByPropertyName=$true)]
+        [ValidateSet(1024, 2048, 3072)]
+        [int]$DSAKeySize = 2048,
+
+        [Parameter(Mandatory=$false,
+                   ValueFromPipelineByPropertyName=$true)]
         [datetime]$ExpirationDate
+
     )
 
     Begin
@@ -1182,32 +1188,41 @@ function New-PGPDsaElGamalKeyPair
         }
         else
         {
-            throw "The path specified does not exist!"
+            throw 'The path specified does not exist!'
         }
     }
     Process
     {
         
-        # Gnerate DSA Key
+        # Gnerate DSA2 Key
         ########################
+
+        # Set the DSA2 Parameter accordint to te L Parameter (Also key size)
+        if ($DSAKeySize -eq 1024)
+        {
+            $DSA2NParam = 160
+        }
+        else
+        {
+            $DSA2NParam = 256
+        }
         $SecureRand =  New-Object Org.BouncyCastle.Security.SecureRandom
-        $DSAGenerator = [Org.BouncyCastle.Security.GeneratorUtilities]::GetKeyPairGenerator("DSA")
-        $pgen = New-Object Org.BouncyCastle.Crypto.Generators.DsaParametersGenerator
-        $pgen.Init(1024,80,$SecureRand)
-        $DSAParameters = $pgen.GenerateParameters()
-        $DSAOps = New-Object Org.BouncyCastle.Crypto.Parameters.DsaKeyGenerationParameters -ArgumentList $SecureRand,
-                  $DSAParameters
-        $DSAGenerator.Init($DSAOps)
-        # The library limits DSA creation to 1024
-        Write-Verbose "Generating 1024bit DSA Key."
-        $DSAKeyPair = $DSAGenerator.GenerateKeyPair()
+        $DSA2Generator = [Org.BouncyCastle.Security.GeneratorUtilities]::GetKeyPairGenerator('DSA')
+        $digest = New-Object Org.BouncyCastle.Crypto.Digests.Sha256Digest
+        $pgen = New-Object Org.BouncyCastle.Crypto.Generators.DsaParametersGenerator -ArgumentList $digest
+        $DSA2Params = New-Object Org.BouncyCastle.Crypto.Parameters.DsaParameterGenerationParameters -ArgumentList $DSAKeySize,$DSA2NParam,80,$SecureRand
+        $pgen.Init($DSA2Params)
+        $PGenParams =  $pgen.GenerateParameters()
+        $DSAOps = New-Object Org.BouncyCastle.Crypto.Parameters.DsaKeyGenerationParameters -ArgumentList $SecureRand,$PGenParams
+        $DSA2Generator.Init($DSAOps)
+        $DSAKeyPair = $DSA2Generator.GenerateKeyPair()
 
         # Generate El Gamal key
         #########################
         $SecureRandEG =  New-Object Org.BouncyCastle.Security.SecureRandom
-        $ElGamalGenerator = [Org.BouncyCastle.Security.GeneratorUtilities]::GetKeyPairGenerator("ELGAMAL")
+        $ElGamalGenerator = [Org.BouncyCastle.Security.GeneratorUtilities]::GetKeyPairGenerator('ELGAMAL')
         $EGPrime = Get-MODP -BitSize $ElGamalKeySize
-        $EGBaseGenerator = New-Object Org.BouncyCastle.Math.BigInteger -ArgumentList "2",16
+        $EGBaseGenerator = New-Object Org.BouncyCastle.Math.BigInteger -ArgumentList '2',16
         $ElGamalParameterSet = New-Object Org.BouncyCastle.Crypto.Parameters.ElGamalParameters -ArgumentList $EGPrime,
                                $EGBaseGenerator
         $ELGKP = New-Object Org.BouncyCastle.Crypto.Parameters.ElGamalKeyGenerationParameters -ArgumentList $SecureRandEG, 
@@ -1231,7 +1246,7 @@ function New-PGPDsaElGamalKeyPair
             $HashPacket.SetKeyExpirationTime($false, $expirationepoch)
         }
         
-        Write-Verbose "Creating PGP key ring"
+        Write-Verbose 'Creating PGP key ring'
         $PGPDSAPair = New-Object Org.BouncyCastle.Bcpg.OpenPgp.PgpKeyPair -ArgumentList ([Org.BouncyCastle.Bcpg.PublicKeyAlgorithmTag]::Dsa),
                         $DSAKeyPair,
                         ([datetime]::UtcNow)
@@ -1246,19 +1261,20 @@ function New-PGPDsaElGamalKeyPair
                    $PGPDSAPair,
                    "$($Identity) <$($email)>",
                    $SymAlgo,
+                   ([Org.BouncyCastle.Bcpg.HashAlgorithmTag]::Sha256),
                    ([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($PassPhrase))),
                    $true,
                    $HashPacket.Generate(),
                    $null,
                    $SecureRand
 
-        $KeyringGen.AddSubKey($PGPEGPair)
-        Write-Verbose "Generating secret key."
+        $KeyringGen.AddSubKey($PGPEGPair, ([Org.BouncyCastle.Bcpg.HashAlgorithmTag]::Sha256))
+        Write-Verbose 'Generating secret key.'
         $seckey = $keyRingGen.GenerateSecretKeyRing()
-        Write-Verbose "Generating public key."
+        Write-Verbose 'Generating public key.'
         $pubkey = $keyRingGen.GeneratePublicKeyRing()
-        Write-Verbose "Keyring has benn ceated."
-        $keyID = (($seckey.GetSecretKey().keyID | foreach { $_.ToString("X2") }) -join "")
+        Write-Verbose 'Keyring has benn ceated.'
+        $keyID = (($seckey.GetSecretKey().keyID | foreach { $_.ToString('X2') }) -join '')
         if ($Armor)
         {
             $SecretKey = "$($keypath)\$($keyID)_sec.asc"
@@ -1278,6 +1294,13 @@ function New-PGPDsaElGamalKeyPair
         {
              $SecretStream_armor = new-object Org.BouncyCastle.Bcpg.ArmoredOutputStream $SecretStream
              $PublicStream_armor = new-object Org.BouncyCastle.Bcpg.ArmoredOutputStream $PublicStream
+
+             # Exclude version info if not desired.
+             if (!($NoVersion))
+             {
+                $SecretStream_armor.SetHeader('Version', 'Posh-OpenPGP')
+                $PublicStream_armor.SetHeader('Version', 'Posh-OpenPGP')
+             }
         }
 
         # Create the key pairs either in binarry or ASCII Armor
@@ -1286,23 +1309,23 @@ function New-PGPDsaElGamalKeyPair
         if ($Armor)
         {
             $SecKey.Encode($SecretStream_armor)
-            sleep(2)
+            Start-Sleep(2)
             $SecretStream_armor.close()
             $SecretStream.Close()
 
             $pubkey.encode($PublicStream_armor)
-            sleep(2)
+            Start-Sleep(2)
             $PublicStream_armor.close()
             $PublicStream.Close()
         }
         else
         {
             $SecKey.Encode($SecretStream)
-            sleep(2)
+            Start-Sleep(2)
             $SecretStream.Close()
 
             $pubkey.encode($PublicStream)
-            sleep(2)
+            Start-Sleep(2)
             $PublicStream.Close()
         }
 
@@ -1319,10 +1342,6 @@ function New-PGPDsaElGamalKeyPair
 .DESCRIPTION
    Get More Modular Exponential (MODP) Diffie-Hellman groups for Internet Key Exchange (IKE). 
    Based on http://www.ietf.org/rfc/rfc3526.txt
-.EXAMPLE
-   Example of how to use this cmdlet
-.EXAMPLE
-   Another example of how to use this cmdlet
 #>
 function Get-MODP
 {
@@ -1334,7 +1353,7 @@ function Get-MODP
         [Parameter(Mandatory=$true,
                    ValueFromPipelineByPropertyName=$true,
                 Position=0)]
-        [ValidateSet(1536,2048,3072,4096)]   
+        [ValidateSet(1024,2048,3072,4096)]   
         $BitSize
     )
 
@@ -1348,75 +1367,75 @@ function Get-MODP
         {
          
             4096 {
-                $sbs = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1"+
-                "29024E088A67CC74020BBEA63B139B22514A08798E3404DD"+
-                "EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245"+
-                "E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED"+
-                "EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D"+
-                "C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F"+
-                "83655D23DCA3AD961C62F356208552BB9ED529077096966D"+
-                "670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B"+
-                "E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9"+
-                "DE2BCBF6955817183995497CEA956AE515D2261898FA0510"+
-                "15728E5A8AAAC42DAD33170D04507A33A85521ABDF1CBA64"+
-                "ECFB850458DBEF0A8AEA71575D060C7DB3970F85A6E1E4C7"+
-                "ABF5AE8CDB0933D71E8C94E04A25619DCEE3D2261AD2EE6B"+
-                "F12FFA06D98A0864D87602733EC86A64521F2B18177B200C"+
-                "BBE117577A615D6C770988C0BAD946E208E24FA074E5AB31"+
-                "43DB5BFCE0FD108E4B82D120A92108011A723C12A787E6D7"+
-                "88719A10BDBA5B2699C327186AF4E23C1A946834B6150BDA"+
-                "2583E9CA2AD44CE8DBBBC2DB04DE8EF92E8EFC141FBECAA6"+
-                "287C59474E6BC05D99B2964FA090C3A2233BA186515BE7ED"+
-                "1F612970CEE2D7AFB81BDD762170481CD0069127D5B05AA9"+
-                "93B4EA988D8FDDC186FFB7DC90A6C08F4DF435C934063199"+
-                "FFFFFFFFFFFFFFFF"
+                $sbs = 'FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1'+
+                '29024E088A67CC74020BBEA63B139B22514A08798E3404DD'+
+                'EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245'+
+                'E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED'+
+                'EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D'+
+                'C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F'+
+                '83655D23DCA3AD961C62F356208552BB9ED529077096966D'+
+                '670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B'+
+                'E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9'+
+                'DE2BCBF6955817183995497CEA956AE515D2261898FA0510'+
+                '15728E5A8AAAC42DAD33170D04507A33A85521ABDF1CBA64'+
+                'ECFB850458DBEF0A8AEA71575D060C7DB3970F85A6E1E4C7'+
+                'ABF5AE8CDB0933D71E8C94E04A25619DCEE3D2261AD2EE6B'+
+                'F12FFA06D98A0864D87602733EC86A64521F2B18177B200C'+
+                'BBE117577A615D6C770988C0BAD946E208E24FA074E5AB31'+
+                '43DB5BFCE0FD108E4B82D120A92108011A723C12A787E6D7'+
+                '88719A10BDBA5B2699C327186AF4E23C1A946834B6150BDA'+
+                '2583E9CA2AD44CE8DBBBC2DB04DE8EF92E8EFC141FBECAA6'+
+                '287C59474E6BC05D99B2964FA090C3A2233BA186515BE7ED'+
+                '1F612970CEE2D7AFB81BDD762170481CD0069127D5B05AA9'+
+                '93B4EA988D8FDDC186FFB7DC90A6C08F4DF435C934063199'+
+                'FFFFFFFFFFFFFFFF'
                 return New-Object Org.BouncyCastle.Math.BigInteger -ArgumentList $sbs,16
             }
 
             3072 {
-                $sbs = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1"+
-                "29024E088A67CC74020BBEA63B139B22514A08798E3404DD"+
-                "EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245"+
-                "E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED"+
-                "EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D"+
-                "C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F"+
-                "83655D23DCA3AD961C62F356208552BB9ED529077096966D"+
-                "670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B"+
-                "E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9"+
-                "DE2BCBF6955817183995497CEA956AE515D2261898FA0510"+
-                "15728E5A8AAAC42DAD33170D04507A33A85521ABDF1CBA64"+
-                "ECFB850458DBEF0A8AEA71575D060C7DB3970F85A6E1E4C7"+
-                "ABF5AE8CDB0933D71E8C94E04A25619DCEE3D2261AD2EE6B"+
-                "F12FFA06D98A0864D87602733EC86A64521F2B18177B200C"+
-                "BBE117577A615D6C770988C0BAD946E208E24FA074E5AB31"+
-                "43DB5BFCE0FD108E4B82D120A93AD2CAFFFFFFFFFFFFFFFF"
+                $sbs = 'FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1'+
+                '29024E088A67CC74020BBEA63B139B22514A08798E3404DD'+
+                'EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245'+
+                'E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED'+
+                'EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D'+
+                'C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F'+
+                '83655D23DCA3AD961C62F356208552BB9ED529077096966D'+
+                '670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B'+
+                'E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9'+
+                'DE2BCBF6955817183995497CEA956AE515D2261898FA0510'+
+                '15728E5A8AAAC42DAD33170D04507A33A85521ABDF1CBA64'+
+                'ECFB850458DBEF0A8AEA71575D060C7DB3970F85A6E1E4C7'+
+                'ABF5AE8CDB0933D71E8C94E04A25619DCEE3D2261AD2EE6B'+
+                'F12FFA06D98A0864D87602733EC86A64521F2B18177B200C'+
+                'BBE117577A615D6C770988C0BAD946E208E24FA074E5AB31'+
+                '43DB5BFCE0FD108E4B82D120A93AD2CAFFFFFFFFFFFFFFFF'
                 return New-Object Org.BouncyCastle.Math.BigInteger -ArgumentList $sbs,16
             }
 
             2048 {
-                $sbs = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-                "29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-                "EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245"+
-                "E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED"+
-                "EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D"+
-                "C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F"+
-                "83655D23DCA3AD961C62F356208552BB9ED529077096966D"+
-                "670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B"+
-                "E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9"+
-                "DE2BCBF6955817183995497CEA956AE515D2261898FA0510"+
-                "15728E5A8AACAA68FFFFFFFFFFFFFFFF"
+                $sbs = 'FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1' +
+                '29024E088A67CC74020BBEA63B139B22514A08798E3404DD' +
+                'EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245'+
+                'E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED'+
+                'EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D'+
+                'C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F'+
+                '83655D23DCA3AD961C62F356208552BB9ED529077096966D'+
+                '670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B'+
+                'E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9'+
+                'DE2BCBF6955817183995497CEA956AE515D2261898FA0510'+
+                '15728E5A8AACAA68FFFFFFFFFFFFFFFF'
                  New-Object Org.BouncyCastle.Math.BigInteger -ArgumentList $sbs,16
             }
 
-            1536 {
-                $sbs = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1"+
-                "29024E088A67CC74020BBEA63B139B22514A08798E3404DD"+
-                "EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245"+
-                "E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED"+
-                "EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D"+
-                "C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F"+
-                "83655D23DCA3AD961C62F356208552BB9ED529077096966D"+
-                "670C354E4ABC9804F1746C08CA237327FFFFFFFFFFFFFFFF"
+            1024 {
+                $sbs = 'FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1'+
+                '29024E088A67CC74020BBEA63B139B22514A08798E3404DD'+
+                'EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245'+
+                'E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED'+
+                'EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D'+
+                'C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F'+
+                '83655D23DCA3AD961C62F356208552BB9ED529077096966D'+
+                '670C354E4ABC9804F1746C08CA237327FFFFFFFFFFFFFFFF'
                 return New-Object Org.BouncyCastle.Math.BigInteger -ArgumentList $sbs,16
             }
         }
@@ -1448,30 +1467,30 @@ function Update-PGPSecKeyPassPhrase
     (
 
         [Parameter(Mandatory=$true,
-        ValueFromPipelineByPropertyName=$true,
-        Position=0)]
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=0)]
         [ValidateScript({Test-Path $_})]
         [string]$SecKeyRing,
 
         [Parameter(Mandatory=$true,
-        ValueFromPipelineByPropertyName=$true,
-        Position=1)]
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=1)]
         [string]$ID,
 
         [Parameter(Mandatory=$true,
-        ValueFromPipelineByPropertyName=$true,
-        Position=2)]
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=2)]
         [securestring]$OldPassphrase,
 
         [Parameter(Mandatory=$true,
-        ValueFromPipelineByPropertyName=$true,
-        Position=3)]
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=3)]
         [securestring]$NewPassphrase
     )
 
     Begin
     {
-        $idlongformat = ($Id | foreach {[Convert]::ToInt64($_,16)})  -join ""
+        $idlongformat = ($Id | foreach {[Convert]::ToInt64($_,16)})  -join ''
     }
     Process
     {
@@ -1485,11 +1504,11 @@ function Update-PGPSecKeyPassPhrase
         $secring = $PrivKeyBundle.GetSecretKeyRing($idlongformat)
         if ($secring)
         {
-            Write-Verbose "Key was found"
+            Write-Verbose 'Key was found'
             $seckey = $secring.GetSecretKey()
-            Write-Verbose "Getting key encryption"
+            Write-Verbose 'Getting key encryption'
             $keyencalgo = $seckey.KeyEncryptionAlgorithm
-            Write-Verbose "Creating a copy of the key with the new passphrase and encrypting it."
+            Write-Verbose 'Creating a copy of the key with the new passphrase and encrypting it.'
             # Create a copy with the new Passphrase
 
             try
@@ -1503,9 +1522,9 @@ function Update-PGPSecKeyPassPhrase
             catch
             {
                 $error_message =  $_.Exception
-                if ($error_message -like "*Checksum mismatch*")
+                if ($error_message -like '*Checksum mismatch*')
                 {
-                    Write-Error "Passphrase provided is not the correct one."
+                    Write-Error 'Passphrase provided is not the correct one.'
                     return
                 }
                 else
@@ -1514,17 +1533,17 @@ function Update-PGPSecKeyPassPhrase
                     return
                 }
             }
-            Write-Verbose "Updating key ring"
+            Write-Verbose 'Updating key ring'
             # Remove the old key from the key bundle
             $PrivKeyBundle = [Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKeyRingBundle]::RemoveSecretKeyRing($PrivKeyBundle, $secring)
 
             # Insert the new key in to the key bundle
-            $PrivKeyBundle = [Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKeyRingBundle]::AddSecretKeyRing($NewBun, $copy)
+            $PrivKeyBundle = [Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKeyRingBundle]::AddSecretKeyRing($PrivKeyBundle, $copy)
 
             # Close the original stream and open a new one to create the key ring
             $stream.Close()
 
-            Write-Verbose "Saving the secret key ring with the updated key."
+            Write-Verbose 'Saving the secret key ring with the updated key.'
             # Write new key ring
             $SecretStream = [System.IO.File]::OpenWrite($SecKeyRing)
             $PrivKeyBundle.Encode($SecretStream)
@@ -1621,12 +1640,12 @@ function New-PGPSecretRingBundle
         {
             Write-Verbose "Secret Key file $($SecKeyFile) was specified for initial import."
             # Open and existing secret key to import and get keyring
-            Write-Verbose "Opening the Secret Key file."
+            Write-Verbose 'Opening the Secret Key file.'
             $SecKeyStream = [System.IO.File]::OpenRead((Resolve-Path $SecKeyFile).Path)
-            Write-Verbose "Decoding key file."
+            Write-Verbose 'Decoding key file.'
             $instream = [Org.BouncyCastle.Bcpg.OpenPgp.PgpUtilities]::GetDecoderStream($SecKeyStream)
             $PrivKeyBundle = New-Object -TypeName Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKeyRingBundle -ArgumentList $instream
-            Write-Verbose "Extracting key rings from the file."
+            Write-Verbose 'Extracting key rings from the file.'
             $PrivRing = $PrivKeyBundle.GetKeyRings()
             $SecKeyStream.Close()
 
@@ -1634,7 +1653,7 @@ function New-PGPSecretRingBundle
             # Add keyring to bundle
             foreach($Ring in $PrivRing)
             {
-                $keyId = (($Ring.GetSecretKey()).KeyId |  foreach { $_.ToString("X2") }) -join ""
+                $keyId = (($Ring.GetSecretKey()).KeyId |  foreach { $_.ToString('X2') }) -join ''
                 Write-Verbose "Adding key $($keyId) ring to the bundle."
                 if ($count -eq 0)
                 {
@@ -1646,19 +1665,19 @@ function New-PGPSecretRingBundle
                 }
                 $count+= 1
             }
-            Write-Verbose "Writing bundle to file."
+            Write-Verbose 'Writing bundle to file.'
             $PrivKeyBundle.Encode($SecretStream)
         }
         else
         {
-            Write-Verbose "Writing bundle to file."
+            Write-Verbose 'Writing bundle to file.'
             $NewKeyRingBundle.Encode($SecretStream)
         }
 
         # Make sure we close the streams
 
         $SecretStream.Close()
-        Write-Verbose "Secret key bundle saved."
+        Write-Verbose 'Secret key bundle saved.'
     }
     End
     {
@@ -1745,12 +1764,12 @@ function New-PGPPublicRingBundle
         {
             Write-Verbose "Public Key file $($PubKeyFile) was specified for initial import."
             # Open and existing secret key to import and get keyring
-            Write-Verbose "Opening the Public Key file."
+            Write-Verbose 'Opening the Public Key file.'
             $PubKeyStream = [System.IO.File]::OpenRead((Resolve-Path $PubKeyFile).Path)
-            Write-Verbose "Decoding key file."
+            Write-Verbose 'Decoding key file.'
             $instream = [Org.BouncyCastle.Bcpg.OpenPgp.PgpUtilities]::GetDecoderStream($PubKeyStream)
             $PubKeyBundle = New-Object -TypeName Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKeyRingBundle -ArgumentList $instream
-            Write-Verbose "Extracting key rings from the file."
+            Write-Verbose 'Extracting key rings from the file.'
             $PubRing = $PubKeyBundle.GetKeyRings()
             $PubKeyStream.Close()
 
@@ -1758,7 +1777,7 @@ function New-PGPPublicRingBundle
             # Add keyring to bundle
             foreach($Ring in $PubRing)
             {
-                $keyId = (($Ring.GetPublicKey()).KeyId |  foreach { $_.ToString("X2") }) -join ""
+                $keyId = (($Ring.GetPublicKey()).KeyId |  foreach { $_.ToString('X2') }) -join ''
                 Write-Verbose "Adding key $($keyId) ring to the bundle."
                 if ($count -eq 0)
                 {
@@ -1770,19 +1789,19 @@ function New-PGPPublicRingBundle
                 }
                 $count+= 1
             }
-            Write-Verbose "Writing bundle to file."
+            Write-Verbose 'Writing bundle to file.'
             $PubKeyBundle.Encode($SecretStream)
         }
         else
         {
-            Write-Verbose "Writing bundle to file."
+            Write-Verbose 'Writing bundle to file.'
             $NewKeyRingBundle.Encode($SecretStream)
         }
 
         # Make sure we close the streams
 
         $SecretStream.Close()
-        Write-Verbose "Public key bundle saved."
+        Write-Verbose 'Public key bundle saved.'
     }
     End
     {
@@ -1858,12 +1877,12 @@ function Import-PGPPublicKey
 
         Write-Verbose "Public Key file $($PubKeyFile) was specified for initial import."
         # Open and existing secret key to import and get keyring
-        Write-Verbose "Opening the Public Key file."
+        Write-Verbose 'Opening the Public Key file.'
         $PubKeyStream = [System.IO.File]::OpenRead((Resolve-Path $PubKeyFile).Path)
-        Write-Verbose "Decoding key file."
+        Write-Verbose 'Decoding key file.'
         $instream = [Org.BouncyCastle.Bcpg.OpenPgp.PgpUtilities]::GetDecoderStream($PubKeyStream)
         $PubKeyBundle = New-Object -TypeName Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKeyRingBundle -ArgumentList $instream
-        Write-Verbose "Extracting key rings from the file."
+        Write-Verbose 'Extracting key rings from the file.'
         $PubRing = $PubKeyBundle.GetKeyRings()
         $PubKeyStream.Close()
 
@@ -1873,7 +1892,7 @@ function Import-PGPPublicKey
         {
             try
             {
-                $keyId = (($Ring.GetPublicKey()).KeyId |  foreach { $_.ToString("X2") }) -join ""
+                $keyId = (($Ring.GetPublicKey()).KeyId |  foreach { $_.ToString('X2') }) -join ''
                 Write-Verbose "Adding key $($keyId) ring to the bundle."
                 if ($count -eq 0)
                 {
@@ -1887,20 +1906,20 @@ function Import-PGPPublicKey
             }
             catch [Exception]
             {
-                if ($_.Exception.Message -like "*Bundle already contains a key with a keyId for the passed in ring*")
+                if ($_.Exception.Message -like '*Bundle already contains a key with a keyId for the passed in ring*')
                 {
-                    Write-Warning "Key already exists in bundle."
+                    Write-Warning 'Key already exists in bundle.'
                 }
             }
         }
-        Write-Verbose "Writing bundle to file."
+        Write-Verbose 'Writing bundle to file.'
         $PubKeyBundle.Encode($SecretStream)
         
 
         # Make sure we close the streams
 
         $SecretStream.Close()
-        Write-Verbose "Public key bundle saved."
+        Write-Verbose 'Public key bundle saved.'
     }
     End
     {
@@ -1959,12 +1978,12 @@ function Import-PGPSecretKey
 
         Write-Verbose "Secret Key file $($SecretKeyFile) was specified for initial import."
         # Open and existing secret key to import and get keyring
-        Write-Verbose "Opening the Public Key file."
+        Write-Verbose 'Opening the Public Key file.'
         $PubKeyStream = [System.IO.File]::OpenRead((Resolve-Path $SecretKeyFile).Path)
-        Write-Verbose "Decoding key file."
+        Write-Verbose 'Decoding key file.'
         $instream = [Org.BouncyCastle.Bcpg.OpenPgp.PgpUtilities]::GetDecoderStream($PubKeyStream)
         $PubKeyBundle = New-Object -TypeName Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKeyRingBundle -ArgumentList $instream
-        Write-Verbose "Extracting key rings from the file."
+        Write-Verbose 'Extracting key rings from the file.'
         $PubRing = $PubKeyBundle.GetKeyRings()
         $PubKeyStream.Close()
 
@@ -1974,7 +1993,7 @@ function Import-PGPSecretKey
         {
             try
             {
-                $keyId = (($Ring.GetPublicKey()).KeyId |  foreach { $_.ToString("X2") }) -join ""
+                $keyId = (($Ring.GetPublicKey()).KeyId |  foreach { $_.ToString('X2') }) -join ''
                 Write-Verbose "Adding key $($keyId) ring to the bundle."
                 if ($count -eq 0)
                 {
@@ -1988,20 +2007,20 @@ function Import-PGPSecretKey
             }
             catch [Exception]
             {
-                if ($_.Exception.Message -like "*Bundle already contains a key with a keyId for the passed in ring*")
+                if ($_.Exception.Message -like '*Bundle already contains a key with a keyId for the passed in ring*')
                 {
-                    Write-Warning "Key already exists in bundle."
+                    Write-Warning 'Key already exists in bundle.'
                 }
             }
         }
-        Write-Verbose "Writing bundle to file."
+        Write-Verbose 'Writing bundle to file.'
         $PubKeyBundle.Encode($SecretStream)
         
 
         # Make sure we close the streams
 
         $SecretStream.Close()
-        Write-Verbose "Public key bundle saved."
+        Write-Verbose 'Public key bundle saved.'
     }
     End
     {
@@ -2053,24 +2072,24 @@ function Remove-PGPSecretKey
         $RingToRemove = $KeyRingBundle.GetKeyRings($UserID, $true, $true)
         if ($RingToRemove.length -gt 1)
         {
-            Write-Warning "More than one key was found with that UserID!"
+            Write-Warning 'More than one key was found with that UserID!'
             return
         }
         elseif ($RingToRemove.length -eq 0)
         {
-            Write-Warning "A Key with that UserId was not found."
+            Write-Warning 'A Key with that UserId was not found.'
             return
         }
         else
         {
             foreach($Ring in $RingToRemove)
             {
-                Write-Verbose "Removing key from bundle."
+                Write-Verbose 'Removing key from bundle.'
                 $SecKeyBundle = [Org.BouncyCastle.Bcpg.OpenPgp.PgpSecretKeyRingBundle]::RemoveSecretKeyRing($KeyRingBundle, $Ring)
             }
         }
 
-        Write-Verbose "Saving key bundle."
+        Write-Verbose 'Saving key bundle.'
         $SecBundle = [System.IO.File]::Create((Resolve-Path $SecretKeyBundle).Path)
         $SecKeyBundle.encode($SecBundle)
         $SecBundle.Close()
@@ -2101,13 +2120,14 @@ function Remove-PGPPublicKey
     Param
     (
         [Parameter(Mandatory=$true,
-        ValueFromPipelineByPropertyName=$true,
-        Position=0)]
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=0)]
+        [ValidateScript({Test-Path $_})]
         $PublicKeyBundle,
 
         [Parameter(Mandatory=$true,
-        ValueFromPipelineByPropertyName=$true,
-        Position=1)]
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=1)]
         $UserID
     )
 
@@ -2127,24 +2147,24 @@ function Remove-PGPPublicKey
         $RingToRemove = $KeyRingBundle.GetKeyRings($UserID, $true, $true)
         if ($RingToRemove.length -gt 1)
         {
-            Write-Warning "More than one key was found with that UserID!"
+            Write-Warning 'More than one key was found with that UserID!'
             return
         }
         elseif ($RingToRemove.length -eq 0)
         {
-            Write-Warning "A Key with that UserId was not found."
+            Write-Warning 'A Key with that UserId was not found.'
             return
         }
         else
         {
             foreach($Ring in $RingToRemove)
             {
-                Write-Verbose "Removing key from bundle."
+                Write-Verbose 'Removing key from bundle.'
                 $PubKeyBundle = [Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKeyRingBundle]::RemovePublicKeyRing($KeyRingBundle, $Ring)
             }
         }
 
-        Write-Verbose "Saving key bundle."
+        Write-Verbose 'Saving key bundle.'
         $PubBundle = [System.IO.File]::Create((Resolve-Path $PublicKeyBundle).Path)
         $PubKeyBundle.encode($PubBundle)
         $PubBundle.Close()
@@ -2173,33 +2193,33 @@ function Export-PGPPublicKey
     Param
     (
         [Parameter(Mandatory=$true,
-        Position=0,
-        ParameterSetName='Id')]
+                   Position=0,
+                   ParameterSetName='Id')]
         [Parameter(ParameterSetName='UserId')]
         [ValidateScript({Test-Path $_})]
         [string]$PublicKeyBundle,
 
         [Parameter(Mandatory=$false,
-        ValueFromPipelineByPropertyName=$true,
-        Position=2)]
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=2)]
         [Parameter(ParameterSetName='Id',Position=1)]
         [string]$Id,
 
         [Parameter(Mandatory=$false,
-        ValueFromPipelineByPropertyName=$true,
-        Position=2)]
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=2)]
         [Parameter(ParameterSetName='UserId', Position=1)]
         [string]$UserId,
 
         [Parameter(Mandatory=$false,
-        ValueFromPipelineByPropertyName=$true,
-        Position=3)]
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=3)]
         [Parameter(ParameterSetName='Id',Position=1)]
         [Parameter(ParameterSetName='UserId')]
         [string]$File,
 
         [Parameter(Mandatory=$false,
-        ValueFromPipelineByPropertyName=$true)]
+                   ValueFromPipelineByPropertyName=$true)]
         [switch]$Armor
         
     )
@@ -2223,7 +2243,7 @@ function Export-PGPPublicKey
                 $pub = Get-PGPPublicKey -PublicKeyBundle $PublicKeyBundle -UserId $UserId
                 if ($pub.Length -gt 1)
                 {
-                    Write-Error -Message "UserdID Matched multiple keys, use Key ID instead" -ErrorAction Stop
+                    Write-Error -Message 'UserdID Matched multiple keys, use Key ID instead' -ErrorAction Stop
                 } 
             }
 
@@ -2232,7 +2252,7 @@ function Export-PGPPublicKey
         # Exits if no key is found.
         if (!($pub))
         {
-            Write-Error "Public Key was not found for export."
+            Write-Error 'Public Key was not found for export.'
             return
         }
 
@@ -2243,27 +2263,27 @@ function Export-PGPPublicKey
         # If out put is Armor a proper stream is created to export the key.
         if ($Armor)
         {
-            Write-Verbose "Generating Armor output."
+            Write-Verbose 'Generating Armor output.'
             [Org.BouncyCastle.Bcpg.ArmoredOutputStream]$PublicStream_armor = new-object Org.BouncyCastle.Bcpg.ArmoredOutputStream $PublicStream
 
             # Set the version number on the Armor header
-            $PublicStream_armor.SetHeader("Version","Posh-OpenPGP")
+            $PublicStream_armor.SetHeader('Version','Posh-OpenPGP')
             $Pub.Encode($PublicStream_armor)
 
             # on large keys it may take a while to finish so we give it 2 second wait.
-            sleep(2)
+            Start-Sleep -Seconds 2
             $PublicStream_armor.close()
         }
         else
         {
-            Write-Verbose "Generating binary output."
+            Write-Verbose 'Generating binary output.'
             $Pub.Encode($PublicStream)
             # on large keys it may take a while to finish so we give it 2 second wait.
-            sleep(2)
+            Start-Sleep -Seconds 2
         }
         
         $PublicStream.Close()
-        Write-Verbose "Key has been exported."
+        Write-Verbose 'Key has been exported.'
     }
     End
     {
@@ -2288,27 +2308,27 @@ function Export-PGPSecretKey
     Param
     (
         [Parameter(Mandatory=$true,
-        Position=0,
-        ParameterSetName='Id')]
+                   Position=0,
+                   ParameterSetName='Id')]
         [Parameter(ParameterSetName='UserId')]
         [ValidateScript({Test-Path $_})]
         [string]$SecretKeyBundle,
 
         [Parameter(Mandatory=$false,
-        ValueFromPipelineByPropertyName=$true,
-        Position=2)]
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=2)]
         [Parameter(ParameterSetName='Id',Position=1)]
         [string]$Id,
 
         [Parameter(Mandatory=$false,
-        ValueFromPipelineByPropertyName=$true,
-        Position=2)]
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=2)]
         [Parameter(ParameterSetName='UserId', Position=1)]
         [string]$UserId,
 
         [Parameter(Mandatory=$false,
-        ValueFromPipelineByPropertyName=$true,
-        Position=3)]
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=3)]
         [Parameter(ParameterSetName='Id',Position=1)]
         [Parameter(ParameterSetName='UserId')]
         [string]$File,
@@ -2338,7 +2358,7 @@ function Export-PGPSecretKey
                 $sec = Get-PGPSecretKey -SecretKeyBundle $SecretKeyBundle -UserId $UserId
                 if ($sec.Length -gt 1)
                 {
-                    Write-Error -Message "UserdID Matched multiple keys, use Key ID instead" -ErrorAction Stop
+                    Write-Error -Message 'UserdID Matched multiple keys, use Key ID instead' -ErrorAction Stop
                 } 
             }
 
@@ -2347,7 +2367,7 @@ function Export-PGPSecretKey
         # Exits if no key is found.
         if (!($sec))
         {
-            Write-Error "Public Key was not found for export."
+            Write-Error 'Public Key was not found for export.'
             return
         }
 
@@ -2358,27 +2378,27 @@ function Export-PGPSecretKey
         # If out put is Armor a proper stream is created to export the key.
         if ($Armor)
         {
-            Write-Verbose "Generating Armor output."
+            Write-Verbose 'Generating Armor output.'
             [Org.BouncyCastle.Bcpg.ArmoredOutputStream]$SecretStream_armor = new-object Org.BouncyCastle.Bcpg.ArmoredOutputStream $SecretStream
 
             # Set the version number on the Armor header
-            $SecretStream_armor.SetHeader("Version","Posh-OpenPGP")
+            $SecretStream_armor.SetHeader('Version','Posh-OpenPGP')
             $sec.Encode($SecretStream_armor)
 
             # on large keys it may take a while to finish so we give it 2 second wait.
-            sleep(2)
+            Start-Sleep(2)
             $SecretStream_armor.close()
         }
         else
         {
-            Write-Verbose "Generating binary output."
+            Write-Verbose 'Generating binary output.'
             $sec.Encode($SecretStream)
             # on large keys it may take a while to finish so we give it 2 second wait.
-            sleep(2)
+            Start-Sleep(2)
         }
         
         $SecretStream.Close()
-        Write-Verbose "Key has been exported."
+        Write-Verbose 'Key has been exported.'
     }
     End
     {
@@ -2401,7 +2421,7 @@ function IsExpired($key)
     }
     else
     {
-        Write-Error "Could not determine key type."
+        Write-Error 'Could not determine key type.'
         return
     }
 
@@ -2525,7 +2545,7 @@ function IsCertificationKey($key)
             return $true
         }
 
-        if ($PublicKey.Algorithm -eq "DSA" -and $hashed.GetKeyFlags() -eq 0 -and $unhashed.GetKeyFlags() -eq 0)
+        if ($PublicKey.Algorithm -eq 'DSA' -and $hashed.GetKeyFlags() -eq 0 -and $unhashed.GetKeyFlags() -eq 0)
         {
             return $true
         }
@@ -2574,7 +2594,7 @@ function IsSigningKey($key)
         }
         
 
-        if ($PublicKey.Algorithm -eq "DSA" -and $hashed.GetKeyFlags() -eq 0 -and $unhashed.GetKeyFlags() -eq 0)
+        if ($PublicKey.Algorithm -eq 'DSA' -and $hashed.GetKeyFlags() -eq 0 -and $unhashed.GetKeyFlags() -eq 0)
         {
             return $true
         }
@@ -2625,7 +2645,7 @@ function IsAuthentication($key)
         }
         
 
-        if ($PublicKey.Algorithm -eq "DSA" -and $hashed.GetKeyFlags() -eq 0 -and $unhashed.GetKeyFlags() -eq 0)
+        if ($PublicKey.Algorithm -eq 'DSA' -and $hashed.GetKeyFlags() -eq 0 -and $unhashed.GetKeyFlags() -eq 0)
         {
             return $true
         }
@@ -2636,4 +2656,4 @@ function IsAuthentication($key)
 
 
 
-Export-ModuleMember "*-*"
+Export-ModuleMember '*-PGP*'

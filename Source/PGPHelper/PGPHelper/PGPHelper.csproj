@@ -54,6 +54,7 @@
     <Compile Include="ClearSignedFileProcessor.cs" />
     <Compile Include="DetachedSignedFileProcessor.cs" />
     <Compile Include="KeyUtilities.cs" />
+    <Compile Include="PGPDSAKeyGen.cs" />
     <Compile Include="PGPEncryptDecryptFile.cs" />
     <Compile Include="PGPHelper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

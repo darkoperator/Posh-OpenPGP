@@ -1,13 +1,7 @@
 ﻿using System;
-using System.Collections;
 using System.IO;
-using System.Text;
-using System.Threading.Tasks;
 using Org.BouncyCastle.Bcpg.OpenPgp;
 using Org.BouncyCastle.Bcpg;
-using Org.BouncyCastle.Security;
-using Org.BouncyCastle.Utilities.Encoders;
-using Org.BouncyCastle.Utilities.IO;
 
 namespace PGPHelper
 {
@@ -15,12 +9,12 @@ namespace PGPHelper
     {
 
 
-        public static PGPSignatureInfo VerifySignature(
+        public static PgpSignatureInfo VerifySignature(
             string fileName,
-            string Signature,
+            string signature,
             string keyFileName)
         {
-            using (Stream input = File.OpenRead(Signature),
+            using (Stream input = File.OpenRead(signature),
                 keyIn = File.OpenRead(keyFileName))
             {
                 return VerifySignature(fileName, input, keyIn);
@@ -30,19 +24,20 @@ namespace PGPHelper
         /**
         * verify the signature in in against the file fileName.
         */
-        public static PGPSignatureInfo VerifySignature(
+        public static PgpSignatureInfo VerifySignature(
             string fileName,
-            Stream Signature,
+            Stream signature,
             Stream keyIn)
         {
-            Signature = PgpUtilities.GetDecoderStream(Signature);
+            signature = PgpUtilities.GetDecoderStream(signature);
 
-            PgpObjectFactory pgpFact = new PgpObjectFactory(Signature);
-            PgpSignatureList p3 = null;
-            PgpObject o = pgpFact.NextPgpObject();
-            if (o is PgpCompressedData)
+            var pgpFact = new PgpObjectFactory(signature);
+            PgpSignatureList p3;
+            var o = pgpFact.NextPgpObject();
+            var data = o as PgpCompressedData;
+            if (data != null)
             {
-                PgpCompressedData c1 = (PgpCompressedData)o;
+                var c1 = data;
                 pgpFact = new PgpObjectFactory(c1.GetDataStream());
 
                 p3 = (PgpSignatureList)pgpFact.NextPgpObject();
@@ -52,11 +47,11 @@ namespace PGPHelper
                 p3 = (PgpSignatureList)o;
             }
 
-            PgpPublicKeyRingBundle pgpPubRingCollection = new PgpPublicKeyRingBundle(
+            var pgpPubRingCollection = new PgpPublicKeyRingBundle(
                 PgpUtilities.GetDecoderStream(keyIn));
             Stream dIn = File.OpenRead(fileName);
-            PgpSignature sig = p3[0];
-            PgpPublicKey key = pgpPubRingCollection.GetPublicKey(sig.KeyId);
+            var sig = p3[0];
+            var key = pgpPubRingCollection.GetPublicKey(sig.KeyId);
             sig.InitVerify(key);
 
             int ch;
@@ -67,11 +62,11 @@ namespace PGPHelper
 
             dIn.Close();
 
-            PGPSignatureInfo siginfo = new PGPSignatureInfo();
+            var siginfo = new PgpSignatureInfo();
 
             if (sig.Verify())
             {
-                siginfo.KeyID = String.Format("{0:X}", sig.KeyId);
+                siginfo.KeyId = String.Format("{0:X}", sig.KeyId);
                 siginfo.Valid = true;
                 siginfo.Version = sig.Version;
                 siginfo.Created = sig.CreationTime;
@@ -79,17 +74,14 @@ namespace PGPHelper
                 siginfo.Signature = sig;
                 return siginfo;
             }
-            else
-            {
-                siginfo.KeyID = String.Format("{0:X}", sig.KeyId);
-                siginfo.Valid = false;
-                siginfo.Version = sig.Version;
-                siginfo.Created = sig.CreationTime;
-                siginfo.HashAlgorithm = sig.HashAlgorithm;
-                siginfo.Signature = sig;
+            siginfo.KeyId = String.Format("{0:X}", sig.KeyId);
+            siginfo.Valid = false;
+            siginfo.Version = sig.Version;
+            siginfo.Created = sig.CreationTime;
+            siginfo.HashAlgorithm = sig.HashAlgorithm;
+            siginfo.Signature = sig;
 
-                return siginfo;
-            }
+            return siginfo;
         }
 
         public static void CreateSignature(
@@ -115,8 +107,8 @@ namespace PGPHelper
             bool armor,
             string digestName)
         {
-            PgpSecretKey pgpSec = KeyUtilities.ReadSecretKey(keyIn);
-            PgpPrivateKey pgpPrivKey = pgpSec.ExtractPrivateKey(pass);
+            var pgpSec = KeyUtilities.ReadSecretKey(keyIn);
+            var pgpPrivKey = pgpSec.ExtractPrivateKey(pass);
 
             HashAlgorithmTag digest;
 
@@ -152,12 +144,12 @@ namespace PGPHelper
             }
 
 
-            PgpSignatureGenerator sGen = new PgpSignatureGenerator(
+            var sGen = new PgpSignatureGenerator(
                 pgpSec.PublicKey.Algorithm, digest);
 
             sGen.InitSign(PgpSignature.BinaryDocument, pgpPrivKey);
 
-            BcpgOutputStream bOut = new BcpgOutputStream(outputStream);
+            var bOut = new BcpgOutputStream(outputStream);
 
             Stream fIn = File.OpenRead(fileName);
 
@@ -218,13 +210,13 @@ namespace PGPHelper
                 digest = HashAlgorithmTag.Sha512;
             }
 
-            PgpPrivateKey pgpPrivKey = keyIn.ExtractPrivateKey(pass);
-            PgpSignatureGenerator sGen = new PgpSignatureGenerator(
+            var pgpPrivKey = keyIn.ExtractPrivateKey(pass);
+            var sGen = new PgpSignatureGenerator(
                 keyIn.PublicKey.Algorithm, digest);
 
             sGen.InitSign(PgpSignature.BinaryDocument, pgpPrivKey);
 
-            BcpgOutputStream bOut = new BcpgOutputStream(outputStream);
+            var bOut = new BcpgOutputStream(outputStream);
 
             Stream fIn = File.OpenRead(fileName);
 

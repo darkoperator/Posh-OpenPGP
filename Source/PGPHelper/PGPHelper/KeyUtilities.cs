@@ -1,13 +1,7 @@
 ﻿using System;
-using System.Collections;
 using System.IO;
-using System.Text;
-using System.Threading.Tasks;
 using Org.BouncyCastle.Bcpg.OpenPgp;
 using Org.BouncyCastle.Bcpg;
-using Org.BouncyCastle.Security;
-using Org.BouncyCastle.Utilities.Encoders;
-using Org.BouncyCastle.Utilities.IO;
 
 namespace PGPHelper
 {
@@ -15,8 +9,8 @@ namespace PGPHelper
     {
         internal static byte[] CompressFile(string fileName, CompressionAlgorithmTag algorithm)
         {
-            MemoryStream bOut = new MemoryStream();
-            PgpCompressedDataGenerator comData = new PgpCompressedDataGenerator(algorithm);
+            var bOut = new MemoryStream();
+            var comData = new PgpCompressedDataGenerator(algorithm);
             PgpUtilities.WriteFileToLiteralData(comData.Open(bOut), PgpLiteralData.Binary,
                 new FileInfo(fileName));
             comData.Close();
@@ -34,9 +28,9 @@ namespace PGPHelper
          * @throws PGPException
          * @throws NoSuchProviderException
          */
-        public static PgpPrivateKey FindSecretKeybyKeyID(PgpSecretKeyRingBundle pgpSec, long keyID, char[] pass)
+        public static PgpPrivateKey FindSecretKeybyKeyId(PgpSecretKeyRingBundle pgpSec, long keyID, char[] pass)
         {
-            PgpSecretKey pgpSecKey = pgpSec.GetSecretKey(keyID);
+            var pgpSecKey = pgpSec.GetSecretKey(keyID);
 
             if (pgpSecKey == null)
             {
@@ -46,9 +40,9 @@ namespace PGPHelper
             return pgpSecKey.ExtractPrivateKey(pass);
         }
 
-        public static PgpPrivateKey FindSecretKeybyKeyID(PgpSecretKeyRingBundle pgpSec, string keyID, char[] pass)
+        public static PgpPrivateKey FindSecretKeybyKeyId(PgpSecretKeyRingBundle pgpSec, string keyID, char[] pass)
         {
-            PgpSecretKey pgpSecKey = pgpSec.GetSecretKey(System.Convert.ToInt64(keyID, 16));
+            var pgpSecKey = pgpSec.GetSecretKey(System.Convert.ToInt64(keyID, 16));
 
             if (pgpSecKey == null)
             {
@@ -58,9 +52,9 @@ namespace PGPHelper
             return pgpSecKey.ExtractPrivateKey(pass);
         }
 
-        public static PgpPrivateKey FindSecretKeyByUserID(PgpSecretKeyRingBundle pgpSec, string UserID, char[] pass)
+        public static PgpPrivateKey FindSecretKeyByUserId(PgpSecretKeyRingBundle pgpSec, string userId, char[] pass)
         {
-            foreach (PgpSecretKeyRing keyRing in pgpSec.GetKeyRings(UserID, true, true))
+            foreach (PgpSecretKeyRing keyRing in pgpSec.GetKeyRings(userId, true, true))
             {
                 foreach (PgpSecretKey key in keyRing.GetSecretKeys())
                 {
@@ -73,9 +67,9 @@ namespace PGPHelper
             return null;
         }
 
-        public static PgpPublicKey FindPublicKeyByKeyID(PgpPublicKeyRingBundle pgpPub, long keyID)
+        public static PgpPublicKey FindPublicKeyByKeyId(PgpPublicKeyRingBundle pgpPub, long keyId)
         {
-            PgpPublicKey pgpPubKey = pgpPub.GetPublicKey(keyID);
+            var pgpPubKey = pgpPub.GetPublicKey(keyId);
 
             if (pgpPubKey == null)
             {
@@ -85,14 +79,14 @@ namespace PGPHelper
             return pgpPubKey;
         }
 
-        public static PgpPublicKey[] FindPublicKeyByKeyID(PgpPublicKeyRingBundle pgpPub, string[] keyIDs)
+        public static PgpPublicKey[] FindPublicKeyByKeyId(PgpPublicKeyRingBundle pgpPub, string[] keyIDs)
         {
-            PgpPublicKey[] pubKeyList = new PgpPublicKey[50];
-            int index = 0;
+            var pubKeyList = new PgpPublicKey[50];
+            var index = 0;
 
-            foreach (string pubKeyId in keyIDs)
+            foreach (var pubKeyId in keyIDs)
             {
-                PgpPublicKey pgpPubKey = pgpPub.GetPublicKey(System.Convert.ToInt64(pubKeyId, 16));
+                var pgpPubKey = pgpPub.GetPublicKey(System.Convert.ToInt64(pubKeyId, 16));
 
                 if (pgpPubKey != null)
                 {
@@ -103,14 +97,14 @@ namespace PGPHelper
             return pubKeyList;
         }
 
-        public static PgpPublicKey[] FindPublicKeyByKeyID(PgpPublicKeyRingBundle pgpPub, long[] keyIDs)
+        public static PgpPublicKey[] FindPublicKeyByKeyId(PgpPublicKeyRingBundle pgpPub, long[] keyIDs)
         {
-            PgpPublicKey[] pubKeyList = new PgpPublicKey[50];
-            int index = 0;
+            var pubKeyList = new PgpPublicKey[50];
+            var index = 0;
 
-            foreach (long pubKeyId in keyIDs)
+            foreach (var pubKeyId in keyIDs)
             {
-                PgpPublicKey pgpPubKey = pgpPub.GetPublicKey(pubKeyId);
+                var pgpPubKey = pgpPub.GetPublicKey(pubKeyId);
 
                 if (pgpPubKey != null)
                 {
@@ -121,11 +115,11 @@ namespace PGPHelper
             return pubKeyList;
         }
 
-        public static PgpPublicKey[] FindPublicKeyByUserID(PgpPublicKeyRingBundle pgpPub, string UserID)
+        public static PgpPublicKey[] FindPublicKeyByUserId(PgpPublicKeyRingBundle pgpPub, string userId)
         {
-            PgpPublicKey[] Keys = new PgpPublicKey[50];
-            int Index = 0;
-            foreach (PgpPublicKeyRing keyRing in pgpPub.GetKeyRings(UserID, true, true))
+            var Keys = new PgpPublicKey[50];
+            var Index = 0;
+            foreach (PgpPublicKeyRing keyRing in pgpPub.GetKeyRings(userId, true, true))
             {
                 foreach (PgpPublicKey key in keyRing.GetPublicKeys())
                 {
@@ -144,37 +138,34 @@ namespace PGPHelper
             }
         }
 
-        public static PgpPublicKey[] FindPublicKeybyUserID(PgpPublicKeyRingBundle pgpPub, string[] UserIDs, char[] pass)
+        public static PgpPublicKey[] FindPublicKeybyUserId(PgpPublicKeyRingBundle pgpPub, string[] userIDs, char[] pass)
         {
-            PgpPublicKey[] Keys = new PgpPublicKey[50];
-            int Index = 0;
-            foreach (string UserID in UserIDs)
+            var keys = new PgpPublicKey[50];
+            var index = 0;
+            foreach (var userId in userIDs)
             {
-                foreach (PgpPublicKeyRing keyRing in pgpPub.GetKeyRings(UserID, true, true))
+                foreach (PgpPublicKeyRing keyRing in pgpPub.GetKeyRings(userId, true, true))
                 {
                     foreach (PgpPublicKey key in keyRing.GetPublicKeys())
                     {
 
-                        Keys[Index] = key;
-                        Index++;
+                        keys[index] = key;
+                        index++;
                     }
                 }
             }
-            if (Keys.Length > 0)
+            if (keys.Length > 0)
             {
-                return Keys;
+                return keys;
             }
-            else
-            {
-                return null;
-            }
+            return null;
         }
 
         public static PgpPublicKeyRingBundle ReadPublicKeBundle(string fileName)
         {
             using (Stream keyIn = File.OpenRead(fileName))
             {
-                PgpPublicKeyRingBundle pgpPub = new PgpPublicKeyRingBundle(
+                var pgpPub = new PgpPublicKeyRingBundle(
                 PgpUtilities.GetDecoderStream(keyIn));
 
                 return pgpPub;
@@ -200,7 +191,7 @@ namespace PGPHelper
          */
         public static PgpPublicKey ReadPublicKey(Stream input)
         {
-            PgpPublicKeyRingBundle pgpPub = new PgpPublicKeyRingBundle(
+            var pgpPub = new PgpPublicKeyRingBundle(
                 PgpUtilities.GetDecoderStream(input));
 
             //
@@ -241,7 +232,7 @@ namespace PGPHelper
          */
         public static PgpSecretKey ReadSecretKey(Stream input)
         {
-            PgpSecretKeyRingBundle pgpSec = new PgpSecretKeyRingBundle(
+            var pgpSec = new PgpSecretKeyRingBundle(
                 PgpUtilities.GetDecoderStream(input));
 
             //

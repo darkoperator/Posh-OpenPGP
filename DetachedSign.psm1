@@ -54,7 +54,7 @@ function New-PGPDetachedSignature
         }
         else
         {
-            Write-Verbose "Using prefered hash algorithm $($SecretKey.PreferedHash[0])"
+            Write-Verbose "Using preferred hash algorithm $($SecretKey.PreferedHash[0])"
             $HashAlgorithm = $SecretKey.PreferedHash[0]
         }
 

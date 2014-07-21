@@ -1,13 +1,8 @@
 ﻿using System;
-using System.Collections;
 using System.IO;
 using System.Text;
-using System.Threading.Tasks;
 using Org.BouncyCastle.Bcpg.OpenPgp;
 using Org.BouncyCastle.Bcpg;
-using Org.BouncyCastle.Security;
-using Org.BouncyCastle.Utilities.Encoders;
-using Org.BouncyCastle.Utilities.IO;
 
 namespace PGPHelper
 {
@@ -24,7 +19,7 @@ namespace PGPHelper
         {
             bOut.SetLength(0);
 
-            int lookAhead = -1;
+            var lookAhead = -1;
             int ch;
 
             while ((ch = fIn.ReadByte()) >= 0)
@@ -47,7 +42,7 @@ namespace PGPHelper
         {
             bOut.SetLength(0);
 
-            int ch = lookAhead;
+            var ch = lookAhead;
 
             do
             {
@@ -73,7 +68,7 @@ namespace PGPHelper
             int lastCh,
             Stream fIn)
         {
-            int lookAhead = fIn.ReadByte();
+            var lookAhead = fIn.ReadByte();
 
             if (lastCh == '\r' && lookAhead == '\n')
             {
@@ -87,11 +82,11 @@ namespace PGPHelper
         /*
         * verify a clear text signed file
         */
-        public static PGPSignatureInfo VerifyFile(
+        public static PgpSignatureInfo VerifyFile(
             Stream inputStream,
-            Stream PubkeyRing)
+            Stream pubkeyRing)
         {
-            ArmoredInputStream aIn = new ArmoredInputStream(inputStream);
+            var aIn = new ArmoredInputStream(inputStream);
 
             Stream outStr = new MemoryStream();
             //
@@ -99,13 +94,13 @@ namespace PGPHelper
             // note: trailing white space needs to be removed from the end of
             // each line RFC 4880 Section 7.1
             //
-            MemoryStream lineOut = new MemoryStream();
-            int lookAhead = ReadInputLine(lineOut, aIn);
-            byte[] newline = Encoding.ASCII.GetBytes(Environment.NewLine);
+            var lineOut = new MemoryStream();
+            var lookAhead = ReadInputLine(lineOut, aIn);
+            var newline = Encoding.ASCII.GetBytes(Environment.NewLine);
 
             if (lookAhead != -1 && aIn.IsClearText())
             {
-                byte[] line = lineOut.ToArray();
+                var line = lineOut.ToArray();
                 outStr.Write(line, 0, GetLengthWithoutSeparatorOrTrailingWhitespace(line));
                 outStr.Write(newline, 0, newline.Length);
 
@@ -121,18 +116,18 @@ namespace PGPHelper
 
             //outStr.Close();
 
-            PgpPublicKeyRingBundle pgpRings = new PgpPublicKeyRingBundle(PubkeyRing);
+            var pgpRings = new PgpPublicKeyRingBundle(pubkeyRing);
 
-            PgpObjectFactory pgpFact = new PgpObjectFactory(aIn);
-            PgpSignatureList p3 = (PgpSignatureList)pgpFact.NextPgpObject();
-            PgpSignature sig = p3[0];
+            var pgpFact = new PgpObjectFactory(aIn);
+            var p3 = (PgpSignatureList)pgpFact.NextPgpObject();
+            var sig = p3[0];
 
             sig.InitVerify(pgpRings.GetPublicKey(sig.KeyId));
 
             //
             // read the input, making sure we ignore the last newline.
             //
-            Stream sigIn = outStr;
+            var sigIn = outStr;
 
             // Set position of stream to start.
             sigIn.Position = 0;
@@ -154,11 +149,11 @@ namespace PGPHelper
                 while (lookAhead != -1);
             }
 
-            PGPSignatureInfo siginfo = new PGPSignatureInfo();
+            var siginfo = new PgpSignatureInfo();
 
             if (sig.Verify())
             {
-                siginfo.KeyID = String.Format("{0:X}", sig.KeyId);
+                siginfo.KeyId = String.Format("{0:X}", sig.KeyId);
                 siginfo.Valid = true;
                 siginfo.Version = sig.Version;
                 siginfo.Created = sig.CreationTime;
@@ -166,17 +161,14 @@ namespace PGPHelper
                 siginfo.Signature = sig;
                 return siginfo;
             }
-            else
-            {
-                siginfo.KeyID = String.Format("{0:X}", sig.KeyId);
-                siginfo.Valid = false;
-                siginfo.Version = sig.Version;
-                siginfo.Created = sig.CreationTime;
-                siginfo.HashAlgorithm = sig.HashAlgorithm;
-                siginfo.Signature = sig;
+            siginfo.KeyId = String.Format("{0:X}", sig.KeyId);
+            siginfo.Valid = false;
+            siginfo.Version = sig.Version;
+            siginfo.Created = sig.CreationTime;
+            siginfo.HashAlgorithm = sig.HashAlgorithm;
+            siginfo.Signature = sig;
 
-                return siginfo;
-            }
+            return siginfo;
         }
 
 
@@ -221,8 +213,8 @@ namespace PGPHelper
             }
 
             // Instanciate signature generator.
-            PgpSignatureGenerator sGen = new PgpSignatureGenerator(pgpSecKey.PublicKey.Algorithm, digest);
-            PgpSignatureSubpacketGenerator spGen = new PgpSignatureSubpacketGenerator();
+            var sGen = new PgpSignatureGenerator(pgpSecKey.PublicKey.Algorithm, digest);
+            var spGen = new PgpSignatureSubpacketGenerator();
 
             // Extract private key
             PgpPrivateKey pgpPrivKey;
@@ -236,14 +228,14 @@ namespace PGPHelper
                 throw new PgpException("Wrong Passphrase, could not extract private key.");
             }
 
-            IEnumerator enumerator = pgpSecKey.PublicKey.GetUserIds().GetEnumerator();
+            var enumerator = pgpSecKey.PublicKey.GetUserIds().GetEnumerator();
             if (enumerator.MoveNext())
             {
                 spGen.SetSignerUserId(false, (string)enumerator.Current);
                 sGen.SetHashedSubpackets(spGen.Generate());
             }
 
-            ArmoredOutputStream aOut = new ArmoredOutputStream(outputStream);
+            var aOut = new ArmoredOutputStream(outputStream);
             if (version)
             {
                 aOut.SetHeader("Version", "Posh-OpenPGP");
@@ -254,8 +246,8 @@ namespace PGPHelper
             //
             // note the last \n/\r/\r\n in the file is ignored
             //
-            MemoryStream lineOut = new MemoryStream();
-            int lookAhead = ReadInputLine(lineOut, fIn);
+            var lineOut = new MemoryStream();
+            var lookAhead = ReadInputLine(lineOut, fIn);
             ProcessLine(aOut, sGen, lineOut.ToArray());
 
             if (lookAhead != -1)
@@ -272,7 +264,7 @@ namespace PGPHelper
 
             fIn.Close();
             aOut.EndClearText();
-            BcpgOutputStream bOut = new BcpgOutputStream(aOut);
+            var bOut = new BcpgOutputStream(aOut);
             sGen.Generate().Encode(bOut);
             aOut.Close();
         }
@@ -284,7 +276,7 @@ namespace PGPHelper
         {
             // note: trailing white space needs to be removed from the end of
             // each line for signature calculation RFC 4880 Section 7.1
-            int length = GetLengthWithoutWhiteSpace(line);
+            var length = GetLengthWithoutWhiteSpace(line);
             if (length > 0)
             {
                 sig.Update(line, 0, length);
@@ -296,7 +288,7 @@ namespace PGPHelper
             PgpSignatureGenerator sGen,
             byte[] line)
         {
-            int length = GetLengthWithoutWhiteSpace(line);
+            var length = GetLengthWithoutWhiteSpace(line);
             if (length > 0)
             {
                 sGen.Update(line, 0, length);
@@ -306,7 +298,7 @@ namespace PGPHelper
 
         private static int GetLengthWithoutSeparatorOrTrailingWhitespace(byte[] line)
         {
-            int end = line.Length - 1;
+            var end = line.Length - 1;
             while (end >= 0 && IsWhiteSpace(line[end]))
             {
                 end--;
@@ -321,7 +313,7 @@ namespace PGPHelper
 
         private static int GetLengthWithoutWhiteSpace(byte[] line)
         {
-            int end = line.Length - 1;
+            var end = line.Length - 1;
             while (end >= 0 && IsWhiteSpace(line[end]))
             {
                 end--;

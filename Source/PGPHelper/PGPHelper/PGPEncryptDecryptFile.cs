@@ -1,27 +1,33 @@
 ﻿using System;
-using System.Collections;
 using System.IO;
-using System.Text;
-using System.Threading.Tasks;
 using Org.BouncyCastle.Bcpg.OpenPgp;
 using Org.BouncyCastle.Bcpg;
 using Org.BouncyCastle.Security;
-using Org.BouncyCastle.Utilities.Encoders;
 using Org.BouncyCastle.Utilities.IO;
 
 namespace PGPHelper
 {
-    public class PGPEncryptDecrypt
+    public class PgpEncryptDecrypt
     {
-
-        public static void DecryptFile(Stream inputStream, PgpSecretKey pgpSecKey, char[] passwd, string pathToSaveFile)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="inputStream"></param>
+        /// <param name="pgpSecKey"></param>
+        /// <param name="passwd"></param>
+        /// <param name="pathToSaveFile"></param>
+        public static void DecryptFile(
+            Stream inputStream, 
+            PgpSecretKey pgpSecKey, 
+            char[] passwd, 
+            string pathToSaveFile)
         {
 
             inputStream = PgpUtilities.GetDecoderStream(inputStream);
 
-            PgpObjectFactory pgpF = new PgpObjectFactory(inputStream);
+            var pgpF = new PgpObjectFactory(inputStream);
             PgpEncryptedDataList enc;
-            PgpObject o = pgpF.NextPgpObject();
+            var o = pgpF.NextPgpObject();
 
             //
             // the first object might be a PGP marker packet.
@@ -61,23 +67,23 @@ namespace PGPHelper
                 throw new ArgumentException("secret key for message not found.");
             }
 
-            Stream clear = pbe.GetDataStream(sKey);
-            PgpObjectFactory plainFact = new PgpObjectFactory(clear);
-            PgpObject message = plainFact.NextPgpObject();
+            var clear = pbe.GetDataStream(sKey);
+            var plainFact = new PgpObjectFactory(clear);
+            var message = plainFact.NextPgpObject();
 
             if (message is PgpCompressedData)
             {
-                PgpCompressedData cData = (PgpCompressedData)message;
-                PgpObjectFactory pgpFact = new PgpObjectFactory(cData.GetDataStream());
+                var cData = (PgpCompressedData)message;
+                var pgpFact = new PgpObjectFactory(cData.GetDataStream());
                 message = pgpFact.NextPgpObject();
             }
 
             if (message is PgpLiteralData)
             {
 
-                PgpLiteralData ld = (PgpLiteralData)message;
+                var ld = (PgpLiteralData)message;
                 Stream fOut = File.Create(pathToSaveFile);
-                Stream unc = ld.GetInputStream();
+                var unc = ld.GetInputStream();
                 Streams.PipeAll(unc, fOut);
                 fOut.Close();
 
@@ -104,12 +110,28 @@ namespace PGPHelper
 
         }
 
-
-        public static void EncryptFile(Stream outputStream, string fileName, PgpPublicKey[] encKeys, bool armor, bool withIntegrityCheck, string compressionName, string symmAlgorithm)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="outputStream"></param>
+        /// <param name="fileName"></param>
+        /// <param name="encKeys"></param>
+        /// <param name="armor"></param>
+        /// <param name="withIntegrityCheck"></param>
+        /// <param name="compressionName"></param>
+        /// <param name="symmAlgorithm"></param>
+        public static void EncryptFile(
+            Stream outputStream, 
+            string fileName, 
+            PgpPublicKey[] encKeys, 
+            bool armor, 
+            bool withIntegrityCheck, 
+            string compressionName, 
+            string symmAlgorithm)
         {
             if (armor)
             {
-                ArmoredOutputStream aOutStream = new ArmoredOutputStream(outputStream);
+                var aOutStream = new ArmoredOutputStream(outputStream);
                 aOutStream.SetHeader("Version", "Posh-OpenPGP");
                 outputStream = aOutStream;
             }
@@ -180,22 +202,25 @@ namespace PGPHelper
                 symtype = SymmetricKeyAlgorithmTag.Twofish;
             }
 
-            MemoryStream bOut = new MemoryStream();
-            PgpCompressedDataGenerator comData = new PgpCompressedDataGenerator(
+            var bOut = new MemoryStream();
+            var comData = new PgpCompressedDataGenerator(
             comptype);
             PgpUtilities.WriteFileToLiteralData(
                 comData.Open(bOut),
                 PgpLiteralData.Binary,
                 new FileInfo(fileName));
+
             comData.Close();
-            PgpEncryptedDataGenerator cPk = new PgpEncryptedDataGenerator(
-            symtype, withIntegrityCheck, new SecureRandom());
-            foreach (PgpPublicKey encKey in encKeys)
+            
+            var cPk = new PgpEncryptedDataGenerator(
+                                                    symtype, withIntegrityCheck, 
+                                                    new SecureRandom());
+            foreach (var encKey in encKeys)
             {
                 cPk.AddMethod(encKey);
             }
-            byte[] bytes = bOut.ToArray();
-            Stream cOut = cPk.Open(outputStream, bytes.Length);
+            var bytes = bOut.ToArray();
+            var cOut = cPk.Open(outputStream, bytes.Length);
             cOut.Write(bytes, 0, bytes.Length);
             cOut.Close();
             if (armor)
@@ -207,11 +232,23 @@ namespace PGPHelper
 
         
         // Based on http://jopinblog.wordpress.com/2008/06/23/pgp-single-pass-sign-and-encrypt-with-bouncy-castle/
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="actualFileName"></param>
+        /// <param name="embeddedFileName"></param>
+        /// <param name="pgpSecKey"></param>
+        /// <param name="outputFileName"></param>
+        /// <param name="password"></param>
+        /// <param name="armor"></param>
+        /// <param name="withIntegrityCheck"></param>
+        /// <param name="encKeys"></param>
+        /// <param name="compressionName"></param>
+        /// <param name="digestName"></param>
         public static void SignAndEncryptFile(string actualFileName,
                string embeddedFileName,
                PgpSecretKey pgpSecKey,
-               string OutputFileName,
+               string outputFileName,
                char[] password,
                bool armor,
                bool withIntegrityCheck,
@@ -269,28 +306,28 @@ namespace PGPHelper
             {
                 digest = HashAlgorithmTag.Sha512;
             }
-            const int BUFFER_SIZE = 1 << 16; // should always be power of 2
-            Stream outputStream = File.Open(OutputFileName, FileMode.Create);
+            const int bufferSize = 1 << 16; // should always be power of 2
+            Stream outputStream = File.Open(outputFileName, FileMode.Create);
 
             if (armor)
             {
-                ArmoredOutputStream aOutStream = new ArmoredOutputStream(outputStream);
+                var aOutStream = new ArmoredOutputStream(outputStream);
                 aOutStream.SetHeader("Version", "Posh-OpenPGP");
                 outputStream = aOutStream;
             }
 
             // Init encrypted data generator
-            PgpEncryptedDataGenerator encryptedDataGenerator =
+            var encryptedDataGenerator =
                 new PgpEncryptedDataGenerator(SymmetricKeyAlgorithmTag.Cast5, withIntegrityCheck, new SecureRandom());
 
             // add keys to encrypt to
-            foreach (PgpPublicKey encKey in encKeys)
+            foreach (var encKey in encKeys)
                 encryptedDataGenerator.AddMethod(encKey);
-            Stream encryptedOut = encryptedDataGenerator.Open(outputStream, new byte[BUFFER_SIZE]);
+            var encryptedOut = encryptedDataGenerator.Open(outputStream, new byte[bufferSize]);
 
             // Init compression
-            PgpCompressedDataGenerator compressedDataGenerator = new PgpCompressedDataGenerator(comptype);
-            Stream compressedOut = compressedDataGenerator.Open(encryptedOut);
+            var compressedDataGenerator = new PgpCompressedDataGenerator(comptype);
+            var compressedOut = compressedDataGenerator.Open(encryptedOut);
 
             // Init signature
             PgpPrivateKey pgpPrivKey;
@@ -302,12 +339,12 @@ namespace PGPHelper
             {
                 throw new PgpException("Wrong Passphrase, could not extract private key.");
             }
-            PgpSignatureGenerator signatureGenerator = new PgpSignatureGenerator(pgpSecKey.PublicKey.Algorithm, digest);
+            var signatureGenerator = new PgpSignatureGenerator(pgpSecKey.PublicKey.Algorithm, digest);
             signatureGenerator.InitSign(PgpSignature.BinaryDocument, pgpPrivKey);
 
             foreach (string userId in pgpSecKey.PublicKey.GetUserIds())
             {
-                PgpSignatureSubpacketGenerator spGen = new PgpSignatureSubpacketGenerator();
+                var spGen = new PgpSignatureSubpacketGenerator();
                 spGen.SetSignerUserId(false, userId);
                 signatureGenerator.SetHashedSubpackets(spGen.Generate());
 
@@ -318,16 +355,16 @@ namespace PGPHelper
             signatureGenerator.GenerateOnePassVersion(false).Encode(compressedOut);
 
             // Create the Literal Data generator output stream
-            PgpLiteralDataGenerator literalDataGenerator = new PgpLiteralDataGenerator();
-            FileInfo embeddedFile = new FileInfo(embeddedFileName);
-            FileInfo actualFile = new FileInfo(actualFileName);
+            var literalDataGenerator = new PgpLiteralDataGenerator();
+            var embeddedFile = new FileInfo(embeddedFileName);
+            var actualFile = new FileInfo(actualFileName);
 
-            Stream literalOut = literalDataGenerator.Open(compressedOut, PgpLiteralData.Binary,
-                embeddedFile.Name, DateTime.UtcNow, new byte[BUFFER_SIZE]);
+            var literalOut = literalDataGenerator.Open(compressedOut, PgpLiteralData.Binary,
+                embeddedFile.Name, DateTime.UtcNow, new byte[bufferSize]);
 
             // Open the input file
-            FileStream inputStream = actualFile.OpenRead();
-            byte[] buf = new byte[BUFFER_SIZE];
+            var inputStream = actualFile.OpenRead();
+            var buf = new byte[bufferSize];
             int len;
             while ((len = inputStream.Read(buf, 0, buf.Length)) > 0)
             {
